@@ -242,7 +242,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* UPI ID card */}
               <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl space-y-3 flex flex-col justify-between">
                 <div className="space-y-3">
@@ -277,9 +277,43 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* Bank Transfer Card */}
+              <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl flex flex-col justify-between text-left space-y-3">
+                <div className="space-y-3">
+                  <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">{language === "hi" ? "विधि C: बैंक ट्रांसफर" : "Method C: Bank Transfer"}</span>
+                  <p className="text-xs text-white/60">{language === "hi" ? "सीधे बैंक खाते में ट्रांसफर करें" : "Transfer directly using Net Banking"}</p>
+                </div>
+                <div className="space-y-2 text-xs font-mono w-full mt-4">
+                  <div className="bg-white/5 p-3 rounded-lg border border-orange-500/10 space-y-1">
+                    <div>
+                      <span className="block text-[8px] text-white/40 uppercase">A/C Name</span>
+                      <span className="text-[10px] font-bold text-white block truncate">HUM HAI HINDU FOUNDATION</span>
+                    </div>
+                    <div>
+                      <span className="block text-[8px] text-white/40 uppercase">A/C No.</span>
+                      <span className="text-[11px] font-bold text-orange-300 block">2051533834</span>
+                    </div>
+                    <div>
+                      <span className="block text-[8px] text-white/40 uppercase">IFSC</span>
+                      <span className="text-[10px] font-bold text-white block">KKBK0000193</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const details = `Account Name: HUM HAI HINDU FOUNDATION\nAccount Number: 2051533834\nIFSC Code: KKBK0000193\nBank: Kotak Mahindra Bank\nAccount Type: Current Account`;
+                      navigator.clipboard.writeText(details);
+                    }}
+                    className="w-full py-2 bg-white/5 hover:bg-orange-500 hover:text-white border border-white/10 rounded-lg text-[10px] font-bold transition-all text-center cursor-pointer"
+                  >
+                    {language === "hi" ? "विवरण कॉपी करें" : "Copy Bank Details"}
+                  </button>
+                </div>
+              </div>
+
               {/* Crypto USDT Card */}
               <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl flex flex-col items-center justify-between text-center space-y-3">
-                <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">{language === "hi" ? "विधि C: क्रिप्टो दान (USDT)" : "Method C: Crypto (USDT)"}</span>
+                <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">{language === "hi" ? "विधि D: क्रिप्टो दान (USDT)" : "Method D: Crypto (USDT)"}</span>
                 <div className="bg-white p-2 rounded-xl shadow-lg">
                   <img
                     src="/crypto-qr.png"
