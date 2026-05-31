@@ -123,8 +123,8 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} Hum Hai Hindu Foundation. All Rights Reserved. Registered NGO.
           </p>
           <div className="flex gap-4 text-xs text-white/40">
-            <Link href="/terms" className="hover:underline">{t("footer.terms")}</Link>
-            <Link href="/privacy" className="hover:underline">{t("footer.privacy")}</Link>
+            <a href="#" className="hover:underline">Terms of Service</a>
+            <a href="#" className="hover:underline">Privacy Policy</a>
           </div>
         </div>
       </div>
