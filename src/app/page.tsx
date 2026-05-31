@@ -242,27 +242,23 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {/* UPI ID card */}
-              <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl space-y-3 flex flex-col justify-between">
-                <div className="space-y-3">
-                  <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">{t("home.methodA")}</span>
-                  <p className="text-xs text-white/60">{t("home.methodADesc")}</p>
+              <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl space-y-3">
+                <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">{t("home.methodA")}</span>
+                <p className="text-xs text-white/60">{t("home.methodADesc")}</p>
+                <div
+                  className="bg-white/5 p-3 rounded-lg border border-orange-500/30 text-sm font-black text-orange-300 text-center select-all cursor-pointer hover:bg-orange-500/10 transition-colors"
+                  onClick={() => { navigator.clipboard.writeText('8447816192@kotak'); }}
+                  title="Click to copy UPI ID"
+                >
+                  8447816192@kotak
                 </div>
-                <div className="space-y-2">
-                  <div
-                    className="bg-white/5 p-3 rounded-lg border border-orange-500/30 text-sm font-black text-orange-300 text-center select-all cursor-pointer hover:bg-orange-500/10 transition-colors"
-                    onClick={() => { navigator.clipboard.writeText('8447816192@kotak'); }}
-                    title="Click to copy UPI ID"
-                  >
-                    8447816192@kotak
-                  </div>
-                  <p className="text-[10px] text-white/30 text-center">Tap to copy • Powered by Kotak Mahindra Bank</p>
-                </div>
+                <p className="text-[10px] text-white/30 text-center">Tap to copy • Powered by Kotak Mahindra Bank</p>
               </div>
 
               {/* QR Code Card */}
-              <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl flex flex-col items-center justify-between text-center space-y-3">
+              <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl flex flex-col items-center justify-center text-center space-y-3">
                 <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">{t("home.methodB")}</span>
                 <div className="bg-white p-2 rounded-xl shadow-lg">
                   <img
@@ -271,66 +267,8 @@ export default function Home() {
                     className="w-28 h-28 object-contain rounded-lg"
                   />
                 </div>
-                <div className="space-y-1">
-                  <span className="block text-[9px] text-white/40">{t("home.methodBDesc")}</span>
-                  <span className="block text-[9px] font-bold text-orange-400/70">8447816192@kotak</span>
-                </div>
-              </div>
-
-              {/* Bank Transfer Card */}
-              <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl flex flex-col justify-between text-left space-y-3">
-                <div className="space-y-3">
-                  <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">{language === "hi" ? "विधि C: बैंक ट्रांसफर" : "Method C: Bank Transfer"}</span>
-                  <p className="text-xs text-white/60">{language === "hi" ? "सीधे बैंक खाते में ट्रांसफर करें" : "Transfer directly using Net Banking"}</p>
-                </div>
-                <div className="space-y-2 text-xs font-mono w-full mt-4">
-                  <div className="bg-white/5 p-3 rounded-lg border border-orange-500/10 space-y-1">
-                    <div>
-                      <span className="block text-[8px] text-white/40 uppercase">A/C Name</span>
-                      <span className="text-[10px] font-bold text-white block truncate">HUM HAI HINDU FOUNDATION</span>
-                    </div>
-                    <div>
-                      <span className="block text-[8px] text-white/40 uppercase">A/C No.</span>
-                      <span className="text-[11px] font-bold text-orange-300 block">2051533834</span>
-                    </div>
-                    <div>
-                      <span className="block text-[8px] text-white/40 uppercase">IFSC</span>
-                      <span className="text-[10px] font-bold text-white block">KKBK0000193</span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const details = `Account Name: HUM HAI HINDU FOUNDATION\nAccount Number: 2051533834\nIFSC Code: KKBK0000193\nBank: Kotak Mahindra Bank\nAccount Type: Current Account`;
-                      navigator.clipboard.writeText(details);
-                    }}
-                    className="w-full py-2 bg-white/5 hover:bg-orange-500 hover:text-white border border-white/10 rounded-lg text-[10px] font-bold transition-all text-center cursor-pointer"
-                  >
-                    {language === "hi" ? "विवरण कॉपी करें" : "Copy Bank Details"}
-                  </button>
-                </div>
-              </div>
-
-              {/* Crypto USDT Card */}
-              <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl flex flex-col items-center justify-between text-center space-y-3">
-                <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">{language === "hi" ? "विधि D: क्रिप्टो दान (USDT)" : "Method D: Crypto (USDT)"}</span>
-                <div className="bg-white p-2 rounded-xl shadow-lg">
-                  <img
-                    src="/crypto-qr.png"
-                    alt="Crypto USDT TRC20 QR Code"
-                    className="w-28 h-28 object-contain rounded-lg"
-                  />
-                </div>
-                <div className="space-y-1 w-full">
-                  <span className="block text-[9px] text-white/40">Network: Tron (TRC20)</span>
-                  <div
-                    className="bg-white/5 p-2 rounded-lg border border-orange-500/30 text-[10px] font-black text-orange-300 text-center select-all cursor-pointer hover:bg-orange-500/10 transition-colors w-full break-all font-mono"
-                    onClick={() => { navigator.clipboard.writeText('TKhmUEKk2h23MzQMk5e8LvLocdDHu4zy6J'); }}
-                    title="Click to copy Wallet Address"
-                  >
-                    TKhmUEKk2h23MzQM...
-                  </div>
-                </div>
+                <span className="text-[9px] text-white/40">{t("home.methodBDesc")}</span>
+                <span className="text-[9px] font-bold text-orange-400/70">8447816192@kotak</span>
               </div>
             </div>
           </div>
