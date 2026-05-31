@@ -85,6 +85,12 @@ export async function ensureDbInit(): Promise<void> {
           );
         `);
 
+        // Migration queries to support offline transaction verification proofs
+        await pool.query("ALTER TABLE donations ADD COLUMN IF NOT EXISTS email VARCHAR(100)");
+        await pool.query("ALTER TABLE donations ADD COLUMN IF NOT EXISTS purpose VARCHAR(100)");
+        await pool.query("ALTER TABLE donations ADD COLUMN IF NOT EXISTS screenshot_url VARCHAR(255)");
+        await pool.query("ALTER TABLE donations ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'Verified'");
+
         // 2. Seed Default Users if empty
         const userCountRes = await pool.query("SELECT COUNT(*) FROM users");
         if (parseInt(userCountRes.rows[0].count, 10) === 0) {
@@ -258,6 +264,10 @@ function mapDonation(row: any): Donation {
     paymentMode: row.payment_mode,
     transactionId: row.transaction_id,
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : "",
+    email: row.email || undefined,
+    purpose: row.purpose || undefined,
+    screenshotUrl: row.screenshot_url || undefined,
+    status: row.status || undefined,
   };
 }
 
@@ -508,7 +518,7 @@ export const dbService = {
     const newId = `DON-${Math.floor(2000 + Math.random() * 8000)}`;
     const now = new Date();
     const res = await pool.query(
-      "INSERT INTO donations (id, donor_name, mobile, amount, payment_mode, transaction_id, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+      "INSERT INTO donations (id, donor_name, mobile, amount, payment_mode, transaction_id, created_at, email, purpose, screenshot_url, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *",
       [
         newId,
         donation.donorName,
@@ -517,8 +527,30 @@ export const dbService = {
         donation.paymentMode,
         donation.transactionId,
         now,
+        donation.email || null,
+        donation.purpose || null,
+        donation.screenshotUrl || null,
+        donation.status || "Verified",
       ]
     );
+    return mapDonation(res.rows[0]);
+  },
+
+  async updateDonationStatusAndAmount(id: string, status: string, amount?: number): Promise<Donation | undefined> {
+    await ensureDbInit();
+    let res;
+    if (amount !== undefined && amount !== null) {
+      res = await pool.query(
+        "UPDATE donations SET status = $2, amount = $3 WHERE id = $1 RETURNING *",
+        [id, status, amount]
+      );
+    } else {
+      res = await pool.query(
+        "UPDATE donations SET status = $2 WHERE id = $1 RETURNING *",
+        [id, status]
+      );
+    }
+    if ((res.rowCount ?? 0) === 0) return undefined;
     return mapDonation(res.rows[0]);
   },
 };

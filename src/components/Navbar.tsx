@@ -54,7 +54,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center space-x-1">
             <Link
               href="/"
-              className="px-4 py-2 rounded-lg text-sm font-medium hover:text-orange-400 transition-colors"
+              className="px-4 py-2 rounded-lg text-sm font-medium hover:text-orange-400 transition-colors whitespace-nowrap"
             >
               {t("nav.home")}
             </Link>
@@ -64,38 +64,38 @@ export default function Navbar() {
               <>
                 <Link
                   href="/#about"
-                  className="px-4 py-2 rounded-lg text-sm font-medium hover:text-orange-400 transition-colors"
+                  className="px-4 py-2 rounded-lg text-sm font-medium hover:text-orange-400 transition-colors whitespace-nowrap"
                 >
                   {t("nav.about")}
                 </Link>
                 <Link
                   href="/#how-it-works"
-                  className="px-4 py-2 rounded-lg text-sm font-medium hover:text-orange-400 transition-colors"
+                  className="px-4 py-2 rounded-lg text-sm font-medium hover:text-orange-400 transition-colors whitespace-nowrap"
                 >
                   {t("nav.howItWorks")}
                 </Link>
                 <Link
-                  href="/#donate"
-                  className="px-4 py-2 text-orange-400 font-semibold text-sm hover:text-orange-300 transition-colors"
+                  href="/donate"
+                  className="px-4 py-2 text-orange-400 font-semibold text-sm hover:text-orange-300 transition-colors whitespace-nowrap"
                 >
-                  ❤️ {t("home.donateNow")}
+                  ❤️ {t("nav.donate")}
                 </Link>
                 <div className="w-[1px] h-6 bg-white/10 mx-2" />
                 <Link
                   href="/auth?role=user"
-                  className="px-4 py-2 text-sm font-medium hover:text-orange-400 transition-colors"
+                  className="px-4 py-2 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-white text-sm font-semibold rounded-lg hover:opacity-90 transition-all duration-300 shadow-md shadow-orange-500/20 whitespace-nowrap"
                 >
                   {t("home.reportOnline")}
                 </Link>
                 <Link
                   href="/auth?role=team"
-                  className="px-4 py-2 text-sm font-medium border border-orange-500/30 rounded-lg hover:border-orange-500 hover:text-orange-400 transition-all duration-300"
+                  className="ml-2 px-4 py-2 text-sm font-medium border border-orange-500/30 rounded-lg hover:border-orange-500 hover:text-orange-400 transition-all duration-300 whitespace-nowrap"
                 >
                   {t("nav.teamPortal")}
                 </Link>
                 <Link
                   href="/auth?role=admin"
-                  className="ml-2 px-4 py-2 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-white text-sm font-semibold rounded-lg hover:opacity-90 transition-all duration-300 shadow-md shadow-orange-500/20"
+                  className="ml-2 px-4 py-2 text-sm font-medium hover:text-orange-400 transition-colors whitespace-nowrap"
                 >
                   {t("nav.adminPortal")}
                 </Link>
@@ -196,17 +196,17 @@ export default function Navbar() {
                   {t("nav.howItWorks")}
                 </Link>
                 <Link
-                  href="/#donate"
+                  href="/donate"
                   onClick={() => setIsOpen(false)}
                   className="block px-3 py-2 rounded-md text-base font-semibold text-orange-400 hover:bg-orange-500/10"
                 >
-                  ❤️ {t("home.donateNow")}
+                  ❤️ {t("nav.donate")}
                 </Link>
                 <div className="border-t border-white/5 my-2" />
                 <Link
                   href="/auth?role=user"
                   onClick={() => setIsOpen(false)}
-                  className="block px-3 py-2 rounded-md text-base font-medium hover:bg-orange-500/10 hover:text-orange-400"
+                  className="block px-3 py-2 rounded-md text-base font-semibold bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-center text-white"
                 >
                   {t("home.reportOnline")}
                 </Link>
@@ -220,7 +220,7 @@ export default function Navbar() {
                 <Link
                   href="/auth?role=admin"
                   onClick={() => setIsOpen(false)}
-                  className="block px-3 py-2 rounded-md text-base font-semibold bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-center text-white"
+                  className="block px-3 py-2 rounded-md text-base font-medium hover:bg-orange-500/10 hover:text-orange-400"
                 >
                   {t("nav.adminPortal")}
                 </Link>

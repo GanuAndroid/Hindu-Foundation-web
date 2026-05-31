@@ -20,7 +20,8 @@ import {
   DollarSign,
   Download,
   AlertCircle,
-  X
+  X,
+  ShieldCheck
 } from "lucide-react";
 import { Ticket, RescueTeam, Donation } from "@/lib/types";
 
@@ -54,6 +55,10 @@ export default function AdminDashboard() {
   const [teams, setTeams] = useState<RescueTeam[]>([]);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [approvalAmounts, setApprovalAmounts] = useState<Record<string, string>>({});
+
+  const verifiedDonations = donations.filter((d) => d.status !== "Pending");
+  const pendingProofs = donations.filter((d) => d.status === "Pending");
 
   // Search & Filters
   const [ticketSearch, setTicketSearch] = useState("");
@@ -242,6 +247,41 @@ export default function AdminDashboard() {
     document.body.removeChild(link);
   };
 
+  const handleVerifyDonationProof = async (donationId: string) => {
+    const verifiedAmount = Number(approvalAmounts[donationId] || 0);
+    if (verifiedAmount <= 0) {
+      alert(language === "hi" ? "कृपया सत्यापन राशि दर्ज करें जो 0 से अधिक हो!" : "Please enter a validation amount greater than 0!");
+      return;
+    }
+
+    if (!confirm(t("donate.admin.confirmVerify"))) return;
+
+    try {
+      const res = await fetch(`/api/donations/${donationId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "Verified",
+          amount: verifiedAmount
+        })
+      });
+
+      if (res.ok) {
+        // Clear approval amount input
+        setApprovalAmounts(prev => {
+          const updated = { ...prev };
+          delete updated[donationId];
+          return updated;
+        });
+        loadAdminData();
+      } else {
+        alert("Failed to verify donation proof.");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   // EXPORT TICKETS TO PRINT/PDF
   const handlePrintTicketsReport = () => {
     window.print();
@@ -259,7 +299,7 @@ export default function AdminDashboard() {
   });
 
   // Calculate Metrics
-  const totalDonationVal = donations.reduce((sum, d) => sum + d.amount, 0) + 1540250;
+  const totalDonationVal = verifiedDonations.reduce((sum, d) => sum + d.amount, 0) + 1540250;
   const activeTeamsCount = teams.filter((t) => t.status === "Active").length;
 
   if (loading || !user) {
@@ -514,7 +554,7 @@ export default function AdminDashboard() {
           
           <button
             onClick={handleExportDonations}
-            disabled={donations.length === 0}
+            disabled={verifiedDonations.length === 0}
             className="flex items-center gap-1.5 px-4 py-2 bg-[#0B132B] hover:bg-[#1E293B] border border-white/10 text-orange-400 text-xs font-extrabold rounded-xl"
           >
             <Download className="w-4 h-4" />
@@ -524,7 +564,7 @@ export default function AdminDashboard() {
 
         {isLoading ? (
           <div className="text-center py-10 text-xs text-white/40">{t("admin.loadingDonations")}</div>
-        ) : donations.length === 0 ? (
+        ) : verifiedDonations.length === 0 ? (
           <div className="text-center py-10 text-xs text-white/40">{t("admin.emptyDonations")}</div>
         ) : (
           <div className="overflow-x-auto">
@@ -540,7 +580,7 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {donations.map((d) => (
+                {verifiedDonations.map((d) => (
                   <tr key={d.id} className="hover:bg-white/[0.01]">
                     <td className="py-3 px-4 font-mono text-white/80 font-semibold">{d.transactionId}</td>
                     <td className="py-3 px-4 font-extrabold text-white">{d.donorName}</td>
@@ -548,6 +588,81 @@ export default function AdminDashboard() {
                     <td className="py-3 px-4 font-black text-orange-400">₹{d.amount.toLocaleString()}</td>
                     <td className="py-3 px-4 text-white/70">{d.paymentMode}</td>
                     <td className="py-3 px-4 text-white/40">{new Date(d.createdAt).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* PENDING OFFLINE DONATION PROOFS AUDIT */}
+      <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6">
+        <div className="flex justify-between items-center border-b border-white/5 pb-4">
+          <h3 className="font-extrabold text-lg flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-orange-400" />
+            {t("donate.admin.auditTitle")}
+          </h3>
+        </div>
+
+        {isLoading ? (
+          <div className="text-center py-10 text-xs text-white/40">{t("admin.loadingDonations")}</div>
+        ) : pendingProofs.length === 0 ? (
+          <div className="text-center py-10 text-xs text-white/40">{t("donate.admin.emptyProofs")}</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-white/10 text-white/50 uppercase tracking-widest font-black text-[9px]">
+                  <th className="py-3 px-4">{t("admin.transactionId")}</th>
+                  <th className="py-3 px-4">{t("admin.donorName")}</th>
+                  <th className="py-3 px-4">{t("admin.mobileNumber")}</th>
+                  <th className="py-3 px-4">{t("admin.paymentMode")}</th>
+                  <th className="py-3 px-4">{language === "hi" ? "रसीद प्रमाण" : "Receipt Proof"}</th>
+                  <th className="py-3 px-4">{language === "hi" ? "सत्यापन राशि (₹)" : "Verify Amount (₹)"}</th>
+                  <th className="py-3 px-4 text-right">{t("team.actions")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {pendingProofs.map((p) => (
+                  <tr key={p.id} className="hover:bg-white/[0.01]">
+                    <td className="py-3 px-4 font-mono text-white/80 font-semibold">{p.transactionId}</td>
+                    <td className="py-3 px-4 font-extrabold text-white">{p.donorName}</td>
+                    <td className="py-3 px-4 font-mono text-white/60">{p.mobile}</td>
+                    <td className="py-3 px-4 text-white/70">{p.paymentMode}</td>
+                    <td className="py-3 px-4 text-orange-400 font-extrabold">
+                      {p.screenshotUrl ? (
+                        <a
+                          href={p.screenshotUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:underline flex items-center gap-1.5"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>{language === "hi" ? "रसीद देखें" : "View Receipt"}</span>
+                        </a>
+                      ) : (
+                        <span className="text-white/30 italic">No proof</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="₹"
+                        value={approvalAmounts[p.id] || ""}
+                        onChange={(e) => setApprovalAmounts({ ...approvalAmounts, [p.id]: e.target.value })}
+                        className="w-24 bg-slate-950 border border-white/10 rounded px-2.5 py-1.5 text-xs text-white font-mono"
+                      />
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <button
+                        onClick={() => handleVerifyDonationProof(p.id)}
+                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-lg transition-colors cursor-pointer"
+                      >
+                        {t("donate.admin.verifyBtn")}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

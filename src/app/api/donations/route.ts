@@ -15,11 +15,11 @@ export async function GET() {
   }
 }
 
-// POST /api/donations - Record a new donation (Razorpay/UPI simulated callback)
+// POST /api/donations - Record a new donation (Razorpay/UPI callback or offline proof submission)
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { donorName, mobile, amount, paymentMode, transactionId } = body;
+    const { donorName, mobile, amount, paymentMode, transactionId, email, purpose, screenshotUrl, status } = body;
 
     if (!donorName || !mobile || !amount || !paymentMode) {
       return NextResponse.json({ error: "Name, Mobile, Amount, and Mode are required" }, { status: 400 });
@@ -32,12 +32,19 @@ export async function POST(req: NextRequest) {
     // Generate transaction ID if not provided (e.g. for QR scan)
     const txId = transactionId || `tx_${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
 
+    // If receipt proof screenshot exists, default status to 'Pending' (for admin audit)
+    const activeStatus = status || (screenshotUrl ? "Pending" : "Verified");
+
     const newDonation = await dbService.createDonation({
       donorName,
       mobile,
       amount: Number(amount),
       paymentMode,
       transactionId: txId,
+      email: email || undefined,
+      purpose: purpose || undefined,
+      screenshotUrl: screenshotUrl || undefined,
+      status: activeStatus,
     });
 
     return NextResponse.json(newDonation, { status: 201 });

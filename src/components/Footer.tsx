@@ -95,7 +95,7 @@ export default function Footer() {
                 <Link href="/#how-it-works" className="hover:text-orange-400 transition-colors">{t("nav.howItWorks")}</Link>
               </li>
               <li>
-                <Link href="/#donate" className="hover:text-orange-400 transition-colors">{t("nav.donate")}</Link>
+                <Link href="/donate" className="hover:text-orange-400 transition-colors">{t("nav.donate")}</Link>
               </li>
             </ul>
           </div>
@@ -123,8 +123,8 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} Hum Hai Hindu Foundation. All Rights Reserved. Registered NGO.
           </p>
           <div className="flex gap-4 text-xs text-white/40">
-            <a href="#" className="hover:underline">Terms of Service</a>
-            <a href="#" className="hover:underline">Privacy Policy</a>
+            <Link href="/terms" className="hover:underline">{t("footer.terms")}</Link>
+            <Link href="/privacy" className="hover:underline">{t("footer.privacy")}</Link>
           </div>
         </div>
       </div>

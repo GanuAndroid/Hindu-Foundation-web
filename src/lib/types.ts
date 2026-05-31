@@ -61,7 +61,11 @@ export interface Donation {
   donorName: string;
   mobile: string;
   amount: number;
-  paymentMode: string; // UPI, Card, NetBanking, QR
+  paymentMode: string; // UPI, Card, NetBanking, QR, etc.
   transactionId: string;
   createdAt: string;
+  email?: string;
+  purpose?: string;
+  screenshotUrl?: string;
+  status?: string; // 'Pending' | 'Verified'
 }

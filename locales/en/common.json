@@ -8,15 +8,15 @@
     "signup": "Register",
     "logout": "Logout",
     "dashboard": "Dashboard",
-    "adminPortal": "Admin Portal",
-    "teamPortal": "Team Portal"
+    "adminPortal": "Admin",
+    "teamPortal": "Team"
   },
   "home": {
     "heroTitle": "HUM HAI HINDU FOUNDATION",
     "heroSubtitle": "Animal Rescue & Assistance",
     "heroDesc": "Serving humanity through animal rescue, emergency medical assistance, ambulance services, shelter support, and volunteer coordination.",
     "donateNow": "Donate Online Now",
-    "reportOnline": "Report Case Online",
+    "reportOnline": "Report Case",
     "whatsappOnly": "Rescue: WhatsApp Only (No Calls)",
     "missionTag": "Our Sacred Duty",
     "missionTitle": "Dedicated to Protecting Every Innocent Soul",
@@ -252,5 +252,142 @@
     "serverCommunicationFailed": "Server communications failed.",
     "confirmDeleteTeam": "Are you sure you want to remove this rescue team from database?",
     "failedAllocateTeam": "Failed to allocate rescue team."
+  },
+  "donate": {
+    "pageTitle": "Support Animal Rescue & Welfare",
+    "heroTitle": "Every Donation Saves a Life",
+    "heroDesc": "Your contribution helps us provide emergency rescue, ambulance services, medical treatment, food, shelter, and rehabilitation for injured and abandoned animals.",
+    "donateNow": "Donate Now",
+    "contactRescue": "Contact Rescue Team",
+    "tabs": {
+      "upi": "UPI Donation",
+      "qr": "QR Code Donation",
+      "bank": "Bank Transfer",
+      "crypto": "Crypto Donation (USDT)"
+    },
+    "upi": {
+      "title": "Donate via UPI",
+      "upiId": "UPI ID",
+      "copyId": "Copy UPI ID",
+      "copied": "UPI ID copied successfully!",
+      "openApp": "Open UPI App (GPay, PhonePe, Paytm)"
+    },
+    "qr": {
+      "title": "QR Code Donation",
+      "scanText": "Scan using GPay, PhonePe, Paytm or BHIM.",
+      "downloadQr": "Download QR Code"
+    },
+    "bank": {
+      "title": "Bank Account Details",
+      "accountName": "Account Name",
+      "accountNumber": "Account Number",
+      "ifscCode": "IFSC Code",
+      "bank": "Bank",
+      "accountType": "Account Type",
+      "copyAccountNumber": "Copy Account Number",
+      "copyAllDetails": "Copy Full Bank Details",
+      "copied": "Account details copied successfully!"
+    },
+    "crypto": {
+      "title": "Donate via USDT (TRC20)",
+      "network": "Network",
+      "walletAddress": "Wallet Address",
+      "copyAddress": "Copy Wallet Address",
+      "copied": "TRC20 address copied successfully!",
+      "warning": "Send only USDT on TRC20 network."
+    },
+    "form": {
+      "title": "Online Contribution Form",
+      "donorName": "Donor Name",
+      "placeholderName": "Enter your name",
+      "mobileNumber": "Mobile Number",
+      "placeholderMobile": "Enter 10-digit mobile",
+      "email": "Email Address (Optional)",
+      "placeholderEmail": "Enter your email ID",
+      "amount": "Donation Amount (INR)",
+      "purpose": "Donation Purpose",
+      "selectPurpose": "Select Purpose",
+      "purposeRescue": "Animal Rescue Operations",
+      "purposeTreatment": "Medical Aid & Treatment",
+      "purposeAmbulance": "Ambulance Fuel & Service",
+      "purposeFood": "Food & Nourishment",
+      "purposeShelter": "Shelter & Rehabilitation",
+      "purposeGeneral": "General Donation",
+      "successText": "Contribution successful! Thank you for your support.",
+      "submitting": "Processing secure transaction..."
+    },
+    "impact": {
+      "title": "Direct Impact Breakdown",
+      "subtitle": "Your kindness saves animals from extreme suffering. See how every rupee is utilized:",
+      "food": "Food for rescued animals",
+      "medical": "Emergency medical support",
+      "ambulance": "Ambulance assistance",
+      "complete": "Complete rescue & treatment support"
+    },
+    "why": {
+      "title": "Why Support Us?",
+      "reasonRescue": "Animal Rescue",
+      "reasonAmbulance": "Emergency Ambulance",
+      "reasonTreatment": "Medical Treatment",
+      "reasonShelter": "Shelter Support",
+      "reasonTransparent": "Transparent Utilization",
+      "reasonCommunity": "Community Welfare"
+    },
+    "about": {
+      "title": "About Hum Hai Hindu Foundation",
+      "desc": "Hum Hai Hindu Foundation is dedicated to rescuing, treating, transporting, and rehabilitating injured and abandoned animals through community support and volunteer participation."
+    },
+    "verify": {
+      "title": "Submit Donation Verification Proof",
+      "desc": "If you have made a transfer via offline UPI, Bank, or Crypto, please upload a transaction receipt snapshot to help us audit and verify your payment.",
+      "donorName": "Donor Name",
+      "mobileNumber": "Mobile Number",
+      "transactionId": "Transaction ID / UTR / TxID",
+      "placeholderTxId": "e.g. UTR123456789 or TX98765",
+      "screenshot": "Upload Screenshot Proof",
+      "uploadText": "Drag and drop or click to upload receipt image",
+      "submitting": "Uploading validation details...",
+      "submitBtn": "Submit Donation Proof",
+      "success": "Donation proof successfully submitted! Our team will verify and update the records.",
+      "errorMsg": "Please upload a screenshot and fill all required details."
+    },
+    "admin": {
+      "auditTitle": "Pending Offline Donation Proofs Audit",
+      "verifyBtn": "Verify Proof",
+      "verifiedStatus": "Verified",
+      "pendingStatus": "Pending Approval",
+      "emptyProofs": "No pending donation proofs requiring audit.",
+      "confirmVerify": "Are you sure you want to approve and verify this donation proof?"
+    },
+    "footer": {
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy"
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "lastUpdated": "Last Updated: May 2026",
+      "intro": "Welcome to Hum Hai Hindu Foundation. By accessing our platform, making donations, or reporting emergency rescue cases, you agree to comply with and be bound by the following terms and conditions.",
+      "section1Title": "1. NGO Mission & Services",
+      "section1Desc": "Hum Hai Hindu Foundation operates as a registered non-governmental organization (NGO) providing rapid street animal rescue, medical treatments, animal ambulance transport, and permanent shelter recovery services. Our platforms connect citizen reporters with active dispatch rescue teams.",
+      "section2Title": "2. Donations & Financial Transactions",
+      "section2Desc": "All financial contributions, whether via UPI, QR scan, direct bank transfer, or crypto (USDT TRC20) are voluntary and utilized entirely for animal care, feed supply, medical aid, and shelter operations. Under special offline verification forms, admins audit transaction snapshots to maintain a transparent public ledger. Donations are non-refundable once verified.",
+      "section3Title": "3. Citizen Emergency Incident Reporting",
+      "section3Desc": "When reporting stray animal emergencies under Event 112, users must submit truthful incident descriptions, correct GPS coordinates, and factual photo/video evidence. Intentional fake reporting, spamming the dispatch network, or overloading the emergency system will lead to account termination and legal accountability.",
+      "section4Title": "4. Limitation of Liability",
+      "section4Desc": "Our dispatch networks and rescue coordinates rely on cellular connectivity and volunteer availability. While our Saffron units strive for instant dispatch, we do not guarantee immediate response timelines for all reported incidents and accept no liability for operations delayed by external traffic or force majeure."
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "lastUpdated": "Last Updated: May 2026",
+      "intro": "Hum Hai Hindu Foundation values your privacy. This policy explains how we collect, process, and secure user information, citizen rescue telemetry, and offline audit payment data.",
+      "section1Title": "1. Information We Collect",
+      "section1Desc": "We collect donor information (name, mobile number, email, purpose of donation), uploaded payment proof snapshots, emergency rescue ticket details (animal type, location coordinates, incident photos), and user account profile credentials.",
+      "section2Title": "2. How We Use Information",
+      "section2Desc": "Data is processed to dispatch Saffron active teams, coordinate rescue operations with nearby veterinarians, verify offline financial contributions, maintain transparent public ledger records, and compile statistics on regional animal welfare.",
+      "section3Title": "3. Data Safety & Security",
+      "section3Desc": "Your coordinate telemetry, profile mobile numbers, and audit files are stored securely. Payment screenshots and transaction details are only accessible to certified NGO admins inside the audited ledger system to prevent financial fraud.",
+      "section4Title": "4. Third-Party Sharing & Disclosure",
+      "section4Desc": "We do not sell or rent user personal data to third-party commercial networks. Telemetry coordinates are shared solely with authorized emergency rescue dispatch units and nearby shelter centers during active rescue operations."
+    }
   }
 }
