@@ -384,31 +384,31 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {teams.map((t) => (
-                  <tr key={t.id} className="hover:bg-white/[0.01]">
-                    <td className="py-3 px-4 font-extrabold text-white">{t.name}</td>
-                    <td className="py-3 px-4 font-mono text-white/80">{t.mobile}</td>
-                    <td className="py-3 px-4 text-white/70">{t.city}, {t.state}</td>
-                    <td className="py-3 px-4 text-white/60">{t.email}</td>
+                {teams.map((team) => (
+                  <tr key={team.id} className="hover:bg-white/[0.01]">
+                    <td className="py-3 px-4 font-extrabold text-white">{team.name}</td>
+                    <td className="py-3 px-4 font-mono text-white/80">{team.mobile}</td>
+                    <td className="py-3 px-4 text-white/70">{team.city}, {team.state}</td>
+                    <td className="py-3 px-4 text-white/60">{team.email}</td>
                     <td className="py-3 px-4">
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                        t.status === "Active" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
+                        team.status === "Active" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
                       }`}>
-                        {t.status === "Active" ? t("admin.active") : t("admin.disabled")}
+                        {team.status === "Active" ? t("admin.active") : t("admin.disabled")}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right space-x-2">
                       <button
-                        onClick={() => handleToggleTeamStatus(t)}
-                        title={t.status === "Active" ? t("admin.disableTeam") : t("admin.activateTeam")}
+                        onClick={() => handleToggleTeamStatus(team)}
+                        title={team.status === "Active" ? t("admin.disableTeam") : t("admin.activateTeam")}
                         className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-white"
                       >
                         <Power className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => {
-                          setEditingTeam(t);
-                          setTeamForm({ name: t.name, mobile: t.mobile, city: t.city, state: t.state, email: t.email, status: t.status });
+                          setEditingTeam(team);
+                          setTeamForm({ name: team.name, mobile: team.mobile, city: team.city, state: team.state, email: team.email, status: team.status });
                           setShowTeamModal(true);
                         }}
                         className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-orange-400"
@@ -416,7 +416,7 @@ export default function AdminDashboard() {
                         <Edit className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => handleDeleteTeam(t.id)}
+                        onClick={() => handleDeleteTeam(team.id)}
                         className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-red-400"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
