@@ -48,8 +48,8 @@ export async function POST(req: NextRequest) {
     } = body;
 
     // Enforce validations
-    if (!eventId || String(eventId) !== "112") {
-      return NextResponse.json({ error: "Invalid Event ID. Must be 112 for emergency dispatch." }, { status: 400 });
+    if (!eventId || !String(eventId).trim()) {
+      return NextResponse.json({ error: "Case ID (Police 112) is required." }, { status: 400 });
     }
     if (!animalType) {
       return NextResponse.json({ error: "Animal Type is required." }, { status: 400 });

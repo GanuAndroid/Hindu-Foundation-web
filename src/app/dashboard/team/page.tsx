@@ -458,7 +458,7 @@ export default function RescueTeamDashboard() {
                     {activeTicket.id}
                     <span className="text-xs text-white/50">({getAnimalTypeTranslation(activeTicket.animalType)})</span>
                   </h3>
-                  <div className="text-[10px] text-white/40 mt-0.5">{t("team.reportedBy")}: Citizen Reporter | Event 112</div>
+                  <div className="text-[10px] text-white/40 mt-0.5">{t("team.reportedBy")}: Citizen Reporter | Case ID: {activeTicket.eventId || "112"}</div>
                 </div>
 
                 <div className="flex items-center gap-3">

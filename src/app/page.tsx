@@ -212,7 +212,7 @@ export default function Home() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
           {[
-            { step: "Step 1", title: t("home.reportOnline"), desc: "Upload photos & videos, auto-detect location GPS pin under emergency Event 112." },
+            { step: "Step 1", title: t("home.reportOnline"), desc: "Upload photos & videos, auto-detect location GPS pin, and enter the Case ID (112) provided by the Police after calling 112." },
             { step: "Step 2", title: "Rescue Dispatched", desc: "Nearby rescue team gets notified, accepts ticket, and reaches in ambulance." },
             { step: "Step 3", title: "Medical Treatment", desc: "Immediate first aid is provided on-site or shifted to gaushala/hospital." },
             { step: "Step 4", title: "Case Closed", desc: "Citizen is notified with final proof recovery photo and transparent closure logs." },

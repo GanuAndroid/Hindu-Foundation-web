@@ -47,7 +47,7 @@ export default function UserDashboard() {
   const [videoUploading, setVideoUploading] = useState(false);
 
   const [formData, setFormData] = useState({
-    eventId: "112",
+    eventId: "",
     animalType: "Cow",
     customAnimalType: "",
     description: "",
@@ -181,6 +181,10 @@ export default function UserDashboard() {
     setFormError(null);
 
     // Mandatories checks
+    if (!formData.eventId.trim()) {
+      setFormError(t("user.emptyEventIdError"));
+      return;
+    }
     if (!formData.imageUrl) {
       setFormError(t("user.validationError"));
       return;
@@ -212,7 +216,7 @@ export default function UserDashboard() {
       if (res.ok) {
         setShowCreateModal(false);
         setFormData({
-          eventId: "112",
+          eventId: "",
           animalType: "Cow",
           customAnimalType: "",
           description: "",
@@ -292,7 +296,7 @@ export default function UserDashboard() {
           className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-white font-extrabold rounded-2xl shadow-lg shadow-orange-500/10 hover:scale-105 transition-transform cursor-pointer"
         >
           <Plus className="w-5 h-5" />
-          {t("user.createTicket")} (112)
+          {t("user.createTicket")} (Case ID 112)
         </button>
       </div>
 
@@ -504,7 +508,7 @@ export default function UserDashboard() {
 
             <h3 className="text-xl font-black mb-6 text-white flex items-center gap-2 border-b border-white/5 pb-4">
               <Plus className="w-6 h-6 text-orange-400" />
-              {t("user.createTicket")} (Event 112)
+              {t("user.createTicket")} (Case ID 112)
             </h3>
 
             {formError && (
@@ -517,12 +521,14 @@ export default function UserDashboard() {
             <form onSubmit={handleCreateTicketSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">Event ID</label>
+                  <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">{t("user.eventIdLabel")}</label>
                   <input
                     type="text"
-                    disabled
-                    value="112"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white/50 font-mono"
+                    required
+                    placeholder={t("user.eventIdPlaceholder")}
+                    value={formData.eventId}
+                    onChange={(e) => setFormData({ ...formData, eventId: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-orange-500"
                   />
                 </div>
 
