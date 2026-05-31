@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import MapSelector from "@/components/MapSelector";
 import {
   ShieldAlert,
@@ -24,6 +25,7 @@ import { Ticket } from "@/lib/types";
 
 export default function RescueTeamDashboard() {
   const { user, loading } = useAuth();
+  const { t, language } = useLanguage();
   const router = useRouter();
 
   // Tickets state
@@ -71,12 +73,10 @@ export default function RescueTeamDashboard() {
       if (res.ok) {
         const data = await res.json();
         setTickets(data);
-        // Sync active ticket details if selected
         if (activeTicket) {
-          const fresh = data.find((t: Ticket) => t.id === activeTicket.id);
+          const fresh = data.find((tItem: Ticket) => tItem.id === activeTicket.id);
           if (fresh) {
             setActiveTicket(fresh);
-            // Refresh history
             const histRes = await fetch(`/api/tickets/${fresh.id}`);
             if (histRes.ok) {
               const histData = await histRes.json();
@@ -96,7 +96,7 @@ export default function RescueTeamDashboard() {
     loadTickets();
   }, []);
 
-  // Update timer for 3-hour countdown if accepted ticket is active
+  // Update timer for 3-hour countdown
   useEffect(() => {
     const timer = setInterval(() => {
       if (activeTicket && activeTicket.status === "Accepted" && activeTicket.acceptedAt) {
@@ -108,7 +108,7 @@ export default function RescueTeamDashboard() {
 
         if (diffMs <= 0) {
           setCountdownStr("AUTO-REVERTING...");
-          loadTickets(); // Reload list to trigger system update in dbService
+          loadTickets();
         } else {
           const h = Math.floor(diffMs / (3600 * 1000));
           const m = Math.floor((diffMs % (3600 * 1000)) / (60 * 1000));
@@ -147,7 +147,7 @@ export default function RescueTeamDashboard() {
         body: JSON.stringify({
           action: "accept",
           updaterName: user.name,
-          assignedRescueTeamId: "team-1", // Team link
+          assignedRescueTeamId: "team-1",
           assignedRescueTeamName: user.name,
         }),
       });
@@ -164,7 +164,7 @@ export default function RescueTeamDashboard() {
     }
   };
 
-  // REVERT BACK TO PENDING (MANUAL)
+  // REVERT BACK TO PENDING
   const handleMarkPendingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeTicket || !user) return;
@@ -207,11 +207,11 @@ export default function RescueTeamDashboard() {
     if (!activeTicket || !user) return;
 
     if (!closeForm.photoUrl) {
-      alert("A final proof recovery photo is required to close this case.");
+      alert(t("team.validationError"));
       return;
     }
     if (closeForm.reason === "Other" && (!closeForm.description || closeForm.description.trim().length === 0)) {
-      alert("A custom description is required.");
+      alert(t("team.validationError"));
       return;
     }
 
@@ -275,16 +275,57 @@ export default function RescueTeamDashboard() {
   };
 
   // Filtered tickets lists
-  const filteredTickets = tickets.filter((t) => {
+  const filteredTickets = tickets.filter((tItem) => {
     if (filterStatus === "All") return true;
-    return t.status === filterStatus;
+    return tItem.status === filterStatus;
   });
 
   // Stats calculation
   const total = tickets.length;
-  const pending = tickets.filter((t) => t.status === "Pending").length;
-  const accepted = tickets.filter((t) => t.status === "Accepted").length;
-  const closed = tickets.filter((t) => t.status === "Closed").length;
+  const pending = tickets.filter((tItem) => tItem.status === "Pending").length;
+  const accepted = tickets.filter((tItem) => tItem.status === "Accepted").length;
+  const closed = tickets.filter((tItem) => tItem.status === "Closed").length;
+
+  const getStatusTranslation = (status: string) => {
+    if (status === "Pending") return t("user.pending");
+    if (status === "Accepted") return t("user.accepted");
+    if (status === "Closed") return t("user.closed");
+    return status;
+  };
+
+  const getAnimalTypeTranslation = (type: string) => {
+    switch (type) {
+      case "Cow": return language === "hi" ? "गाय (Cow)" : "Cow";
+      case "Dog": return language === "hi" ? "कुत्ता (Dog)" : "Dog";
+      case "Monkey": return language === "hi" ? "बंदर (Monkey)" : "Monkey";
+      case "Cat": return language === "hi" ? "बिल्ली (Cat)" : "Cat";
+      case "Bird": return language === "hi" ? "पक्षी (Bird)" : "Bird";
+      case "Snake": return language === "hi" ? "साँप (Snake)" : "Snake";
+      case "Other": return language === "hi" ? "अन्य (Other)" : "Other";
+      default: return type;
+    }
+  };
+
+  const getPendingReasonTranslation = (reason: string) => {
+    switch (reason) {
+      case "Ambulance Not Found": return t("team.ambulanceNotFound");
+      case "Animal Not Found": return t("team.animalNotFound");
+      case "Team Not Available": return t("team.teamNotAvailable");
+      case "Other": return t("team.otherReason");
+      default: return reason;
+    }
+  };
+
+  const getClosureReasonTranslation = (reason: string) => {
+    switch (reason) {
+      case "Treatment Completed": return t("team.treatmentCompleted");
+      case "Sent To Gaushala": return t("team.sentToGaushala");
+      case "Referred To Hospital": return language === "hi" ? "अस्पताल भेजा गया (Referred To Hospital)" : "Referred To Hospital";
+      case "Animal Recovered": return language === "hi" ? "पशु स्वस्थ हुआ (Animal Recovered)" : "Animal Recovered";
+      case "Other": return t("team.otherReason");
+      default: return reason;
+    }
+  };
 
   if (loading || !user) {
     return (
@@ -302,8 +343,8 @@ export default function RescueTeamDashboard() {
       {/* Header Info */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/5 pb-6">
         <div>
-          <span className="text-[#F15A24] font-black text-xs uppercase tracking-widest block">Operational Terminal</span>
-          <h1 className="text-3xl font-black mt-1">Gau Sewa Unit: {user.name}</h1>
+          <span className="text-[#F15A24] font-black text-xs uppercase tracking-widest block">{t("team.dashboardTitle")}</span>
+          <h1 className="text-3xl font-black mt-1">{t("team.welcome")}, {user.name}</h1>
           <p className="text-xs text-white/50">Manage local emergency callouts and perform active veterinary treatments.</p>
         </div>
       </div>
@@ -311,10 +352,10 @@ export default function RescueTeamDashboard() {
       {/* DASHBOARD STATISTICS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Active Regional Tickets", val: total, color: "border-white/10 text-white/80" },
-          { label: "Pending Emergency Dispatch", val: pending, color: "border-amber-500/20 text-amber-400" },
-          { label: "Our Accepted Cases", val: accepted, color: "border-blue-500/20 text-blue-400" },
-          { label: "Successfully Recovered", val: closed, color: "border-emerald-500/20 text-emerald-400" },
+          { label: t("team.totalTasks"), val: total, color: "border-white/10 text-white/80" },
+          { label: t("team.activeCases"), val: pending, color: "border-amber-500/20 text-amber-400" },
+          { label: t("user.accepted"), val: accepted, color: "border-blue-500/20 text-blue-400" },
+          { label: t("team.completedRescues"), val: closed, color: "border-emerald-500/20 text-emerald-400" },
         ].map((item, idx) => (
           <div key={idx} className={`bg-white/[0.01] border p-5 rounded-2xl space-y-1 ${item.color}`}>
             <span className="text-[10px] uppercase font-bold tracking-wider opacity-60">{item.label}</span>
@@ -335,7 +376,7 @@ export default function RescueTeamDashboard() {
                 : "text-white/60 hover:text-white hover:bg-white/5"
             }`}
           >
-            {s}
+            {s === "Pending" ? t("user.pending") : s === "Accepted" ? t("user.accepted") : s === "Closed" ? t("user.closed") : "All"}
           </button>
         ))}
       </div>
@@ -347,7 +388,7 @@ export default function RescueTeamDashboard() {
         <div className="space-y-4">
           <h3 className="font-extrabold text-lg flex items-center gap-2">
             <Filter className="w-5 h-5 text-orange-400" />
-            Filtered Cases ({filteredTickets.length})
+            {t("team.activeCases")} ({filteredTickets.length})
           </h3>
 
           {isLoadingTickets ? (
@@ -358,42 +399,42 @@ export default function RescueTeamDashboard() {
             </div>
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-              {filteredTickets.map((t) => (
+              {filteredTickets.map((tItem) => (
                 <div
-                  key={t.id}
-                  onClick={() => handleSelectTicket(t)}
+                  key={tItem.id}
+                  onClick={() => handleSelectTicket(tItem)}
                   className={`bg-white/[0.01] border border-white/5 p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-white/[0.03] transition-all ${
-                    activeTicket?.id === t.id ? "border-orange-500/30 bg-orange-500/[0.02]" : ""
+                    activeTicket?.id === tItem.id ? "border-orange-500/30 bg-orange-500/[0.02]" : ""
                   }`}
                 >
                   <div className="flex gap-3 items-center">
                     <img
-                      src={t.imageUrl}
-                      alt={t.animalType}
+                      src={tItem.imageUrl}
+                      alt={tItem.animalType}
                       className="w-12 h-12 object-cover rounded-lg border border-white/10"
                     />
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-black text-xs text-white">{t.id}</span>
-                        <span className="text-[10px] text-white/40">({t.animalType})</span>
+                        <span className="font-black text-xs text-white">{tItem.id}</span>
+                        <span className="text-[10px] text-white/40">({getAnimalTypeTranslation(tItem.animalType)})</span>
                       </div>
-                      <p className="text-[10px] text-white/50 line-clamp-1 mt-0.5">{t.description}</p>
+                      <p className="text-[10px] text-white/50 line-clamp-1 mt-0.5">{tItem.description}</p>
                       <span className="text-[9px] text-white/30 block mt-1">
-                        {new Date(t.createdAt).toLocaleTimeString()}
+                        {new Date(tItem.createdAt).toLocaleTimeString()}
                       </span>
                     </div>
                   </div>
 
                   <span
                     className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase border ${
-                      t.status === "Closed"
+                      tItem.status === "Closed"
                         ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                        : t.status === "Accepted"
+                        : tItem.status === "Accepted"
                         ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
                         : "bg-amber-500/10 border-amber-500/20 text-amber-400"
                     }`}
                   >
-                    {t.status}
+                    {getStatusTranslation(tItem.status)}
                   </span>
                 </div>
               ))}
@@ -401,24 +442,23 @@ export default function RescueTeamDashboard() {
           )}
         </div>
 
-        {/* Action Detail View Panel (Right Side - 2 Cols) */}
+        {/* Action Detail View Panel (Right Side) */}
         <div className="lg:col-span-2 space-y-4">
           <h3 className="font-extrabold text-lg flex items-center gap-2">
             <CheckSquare className="w-5 h-5 text-orange-400" />
-            Case Assessment & Operations
+            {t("team.actions")}
           </h3>
 
           {activeTicket ? (
             <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6 animate-fade-in relative overflow-hidden">
               
-              {/* Top Banner indicating status action */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
                 <div>
                   <h3 className="font-black text-lg text-white flex items-center gap-2">
                     {activeTicket.id}
-                    <span className="text-xs text-white/50">({activeTicket.animalType})</span>
+                    <span className="text-xs text-white/50">({getAnimalTypeTranslation(activeTicket.animalType)})</span>
                   </h3>
-                  <div className="text-[10px] text-white/40 mt-0.5">Reported by: Citizen Reporter | Event 112</div>
+                  <div className="text-[10px] text-white/40 mt-0.5">{t("team.reportedBy")}: Citizen Reporter | Event 112</div>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -431,15 +471,15 @@ export default function RescueTeamDashboard() {
                         : "bg-amber-500/10 border-amber-500/20 text-amber-400"
                     }`}
                   >
-                    {activeTicket.status}
+                    {getStatusTranslation(activeTicket.status)}
                   </span>
                 </div>
               </div>
 
-              {/* Media playback block */}
+              {/* Media display */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">Captured Photo</span>
+                  <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">{t("user.uploadPhoto")}</span>
                   <img
                     src={activeTicket.imageUrl}
                     className="w-full h-44 object-cover rounded-xl border border-white/5"
@@ -447,7 +487,7 @@ export default function RescueTeamDashboard() {
                   />
                 </div>
                 <div>
-                  <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">Incident Video Player</span>
+                  <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">{t("user.uploadVideo")}</span>
                   <video
                     src={activeTicket.videoUrl}
                     controls
@@ -456,18 +496,18 @@ export default function RescueTeamDashboard() {
                 </div>
               </div>
 
-              {/* Case GPS coordinates detailed card */}
+              {/* Case GPS Selector Map */}
               <MapSelector onLocationSelect={() => {}} initialLat={activeTicket.latitude} initialLng={activeTicket.longitude} readonly={true} />
 
-              {/* Description textbox */}
+              {/* Description */}
               <div className="space-y-1">
-                <span className="block text-[10px] uppercase font-bold text-white/40">Incident Reporter Briefing</span>
+                <span className="block text-[10px] uppercase font-bold text-white/40">{t("user.description")}</span>
                 <p className="bg-white/[0.01] border border-white/5 p-4 rounded-xl text-xs text-white/80 leading-relaxed font-semibold italic">
                   "{activeTicket.description}"
                 </p>
               </div>
 
-              {/* Auto Pending 3-hour Alert rule display if accepted */}
+              {/* Auto Pending 3-hour timer */}
               {activeTicket.status === "Accepted" && (
                 <div className="bg-orange-500/10 border border-orange-500/20 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                   <div className="flex gap-2.5 items-start">
@@ -484,10 +524,8 @@ export default function RescueTeamDashboard() {
                 </div>
               )}
 
-              {/* ACTION TOOLBAR BAR */}
+              {/* ACTION BUTTONS */}
               <div className="flex flex-wrap gap-3 border-t border-white/5 pt-6">
-                
-                {/* 1. ACCEPT ACTION */}
                 {activeTicket.status === "Pending" && (
                   <button
                     onClick={handleAcceptRescue}
@@ -495,56 +533,53 @@ export default function RescueTeamDashboard() {
                     className="flex-1 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-black uppercase rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-blue-500/10 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Ambulance className="w-4 h-4" />
-                    Accept Rescue Mission
+                    {t("team.acceptTicket")}
                   </button>
                 )}
 
-                {/* 2. MANUAL PENDING ACTION */}
                 {activeTicket.status === "Accepted" && (
                   <button
                     onClick={() => setShowPendingModal(true)}
                     className="px-5 py-4 border border-amber-500/20 bg-amber-500/5 text-amber-400 text-xs font-black uppercase rounded-2xl hover:bg-amber-500/10 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Info className="w-4 h-4" />
-                    Mark Pending
+                    {t("team.markPending")}
                   </button>
                 )}
 
-                {/* 3. CLOSE ACTION */}
                 {activeTicket.status === "Accepted" && (
                   <button
                     onClick={() => setShowCloseModal(true)}
                     className="flex-1 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-black uppercase rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <CheckCircle className="w-4 h-4" />
-                    Close Rescue (Case Recovered)
+                    {t("team.closeTicket")}
                   </button>
                 )}
 
-                {/* Closed summary info logs */}
                 {activeTicket.status === "Closed" && (
                   <div className="w-full bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-2xl space-y-3">
-                    <span className="text-[10px] uppercase font-bold text-emerald-400 block">Case Closure details</span>
+                    <span className="text-[10px] uppercase font-bold text-emerald-400 block">{t("user.closeReason")}</span>
                     <div className="grid grid-cols-2 gap-4 text-xs">
                       <div>
-                        <span className="block text-[9px] text-white/40">Resolution Code</span>
-                        <span className="font-extrabold text-white">{activeTicket.closureReason}</span>
+                        <span className="block text-[9px] text-white/40">{t("user.closeReason")}</span>
+                        <span className="font-extrabold text-white">{getClosureReasonTranslation(activeTicket.closureReason || "")}</span>
                       </div>
                       <div>
-                        <span className="block text-[9px] text-white/40">Resolution Date</span>
+                        <span className="block text-[9px] text-white/40">{t("team.reportedOn")}</span>
                         <span className="font-extrabold text-white">
                           {activeTicket.closedAt ? new Date(activeTicket.closedAt).toLocaleString() : "Unknown"}
                         </span>
                       </div>
                       {activeTicket.closureDescription && (
                         <div className="col-span-2">
-                          <span className="block text-[9px] text-white/40">Closing Comments</span>
+                          <span className="block text-[9px] text-white/40">{t("user.closeDesc")}</span>
                           <span className="font-semibold text-white/80 block italic">"{activeTicket.closureDescription}"</span>
                         </div>
                       )}
                       {activeTicket.closurePhotoUrl && (
                         <div className="col-span-2">
-                          <span className="block text-[9px] text-white/40 mb-1">Final Recovery Proof Photo</span>
+                          <span className="block text-[9px] text-white/40 mb-1">{t("user.closePhoto")}</span>
                           <img
                             src={activeTicket.closurePhotoUrl}
                             className="w-full h-40 object-cover rounded-xl border border-white/5"
@@ -565,15 +600,15 @@ export default function RescueTeamDashboard() {
         </div>
       </div>
 
-      {/* MANUAL PENDING MODAL */}
+      {/* REVERT PENDING MODAL */}
       {showPendingModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-slate-900 border border-white/20 max-w-md w-full rounded-3xl p-6 shadow-2xl relative">
-            <h3 className="text-lg font-black text-white mb-4 border-b border-white/5 pb-3">Mark Case Back to Pending</h3>
+            <h3 className="text-lg font-black text-white mb-4 border-b border-white/5 pb-3">{t("team.markPending")}</h3>
             
             <form onSubmit={handleMarkPendingSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">Delay Reason</label>
+                <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">{t("team.reasonForRevert")}</label>
                 <select
                   value={pendingForm.reason}
                   onChange={(e) => setPendingForm({ ...pendingForm, reason: e.target.value })}
@@ -581,7 +616,7 @@ export default function RescueTeamDashboard() {
                 >
                   {["Ambulance Not Found", "Animal Not Found", "Team Not Available", "Other"].map((r) => (
                     <option key={r} value={r}>
-                      {r}
+                      {getPendingReasonTranslation(r)}
                     </option>
                   ))}
                 </select>
@@ -589,13 +624,13 @@ export default function RescueTeamDashboard() {
 
               {pendingForm.reason === "Other" && (
                 <div className="animate-fade-in">
-                  <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">Provide Description (Required)</label>
+                  <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">{t("user.description")}</label>
                   <textarea
                     required
                     rows={2}
                     value={pendingForm.description}
                     onChange={(e) => setPendingForm({ ...pendingForm, description: e.target.value })}
-                    placeholder="Enter brief description of delay reason..."
+                    placeholder={t("team.placeholderRevertRemarks")}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-orange-500 text-white"
                   />
                 </div>
@@ -607,14 +642,14 @@ export default function RescueTeamDashboard() {
                   onClick={() => setShowPendingModal(false)}
                   className="w-1/3 py-3 border border-white/10 rounded-xl text-xs font-bold text-white/60 hover:text-white"
                 >
-                  Cancel
+                  {t("admin.cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingAction}
                   className="w-2/3 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-500/50 text-slate-950 font-black rounded-xl text-xs transition-colors flex items-center justify-center cursor-pointer"
                 >
-                  Confirm Revert Pending
+                  {t("team.saveRemarks")}
                 </button>
               </div>
             </form>
@@ -626,11 +661,11 @@ export default function RescueTeamDashboard() {
       {showCloseModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in">
           <div className="bg-slate-900 border border-white/20 max-w-lg w-full rounded-3xl p-6 shadow-2xl relative my-8">
-            <h3 className="text-lg font-black text-white mb-4 border-b border-white/5 pb-3">Close Rescue Case (Successful Recovery)</h3>
+            <h3 className="text-lg font-black text-white mb-4 border-b border-white/5 pb-3">{t("team.closeTicket")}</h3>
 
             <form onSubmit={handleCloseTicketSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">Closure Reason</label>
+                <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">{t("team.closureReason")}</label>
                 <select
                   value={closeForm.reason}
                   onChange={(e) => setCloseForm({ ...closeForm, reason: e.target.value })}
@@ -638,7 +673,7 @@ export default function RescueTeamDashboard() {
                 >
                   {["Treatment Completed", "Sent To Gaushala", "Referred To Hospital", "Animal Recovered", "Other"].map((r) => (
                     <option key={r} value={r}>
-                      {r}
+                      {getClosureReasonTranslation(r)}
                     </option>
                   ))}
                 </select>
@@ -646,21 +681,20 @@ export default function RescueTeamDashboard() {
 
               {closeForm.reason === "Other" && (
                 <div className="animate-fade-in">
-                  <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">Provide Closure Details (Required)</label>
+                  <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">{t("user.description")}</label>
                   <textarea
                     required
                     rows={2}
                     value={closeForm.description}
                     onChange={(e) => setCloseForm({ ...closeForm, description: e.target.value })}
-                    placeholder="Describe outcome..."
+                    placeholder={t("team.placeholderClosureDesc")}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-orange-500 text-white"
                   />
                 </div>
               )}
 
-              {/* Upload Final photo proof */}
               <div className="border-2 border-dashed border-white/10 hover:border-orange-500/30 rounded-2xl p-4 text-center space-y-3 transition-colors relative">
-                <span className="block text-xs font-bold text-white/60 uppercase">Upload Final Proof Recovery Photo (Required)</span>
+                <span className="block text-xs font-bold text-white/60 uppercase">{t("team.closurePhoto")}</span>
                 <div className="flex items-center justify-center gap-3">
                   <Camera className="w-8 h-8 text-orange-400" />
                   <input
@@ -671,7 +705,7 @@ export default function RescueTeamDashboard() {
                     className="text-xs text-white/40 w-full"
                   />
                 </div>
-                {photoUploading && <div className="text-[10px] text-orange-400 font-bold">Uploading proof photo locally...</div>}
+                {photoUploading && <div className="text-[10px] text-orange-400 font-bold">Uploading file...</div>}
                 {closePhotoPreview && (
                   <img
                     src={closePhotoPreview}
@@ -687,14 +721,14 @@ export default function RescueTeamDashboard() {
                   onClick={() => setShowCloseModal(false)}
                   className="w-1/3 py-3 border border-white/10 rounded-xl text-xs font-bold text-white/60 hover:text-white"
                 >
-                  Cancel
+                  {t("admin.cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingAction || photoUploading}
                   className="w-2/3 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 disabled:bg-emerald-600/50 text-white font-black rounded-xl text-xs transition-all flex items-center justify-center gap-1 cursor-pointer"
                 >
-                  Confirm Close & Resolve
+                  {t("team.submitClosure")}
                 </button>
               </div>
             </form>

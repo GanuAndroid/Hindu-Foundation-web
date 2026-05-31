@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import AnalyticsCharts from "@/components/AnalyticsCharts";
 import {
   Heart,
@@ -25,7 +26,28 @@ import { Ticket, RescueTeam, Donation } from "@/lib/types";
 
 export default function AdminDashboard() {
   const { user, loading } = useAuth();
+  const { t, language } = useLanguage();
   const router = useRouter();
+
+  const getAnimalTypeTranslation = (type: string) => {
+    switch (type) {
+      case "Cow": return language === "hi" ? "गाय (Cow)" : "Cow";
+      case "Dog": return language === "hi" ? "कुत्ता (Dog)" : "Dog";
+      case "Monkey": return language === "hi" ? "बंदर (Monkey)" : "Monkey";
+      case "Cat": return language === "hi" ? "बिल्ली (Cat)" : "Cat";
+      case "Bird": return language === "hi" ? "पक्षी (Bird)" : "Bird";
+      case "Snake": return language === "hi" ? "साँप (Snake)" : "Snake";
+      case "Other": return language === "hi" ? "अन्य (Other)" : "Other";
+      default: return type;
+    }
+  };
+
+  const getStatusTranslation = (status: string) => {
+    if (status === "Pending") return t("user.pending");
+    if (status === "Accepted") return t("user.accepted");
+    if (status === "Closed") return t("user.closed");
+    return status;
+  };
 
   // Core Data States
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -93,7 +115,7 @@ export default function AdminDashboard() {
 
     // Validation
     if (!teamForm.name || !teamForm.mobile || !teamForm.city || !teamForm.state || !teamForm.email) {
-      setTeamFormError("All team fields are required.");
+      setTeamFormError(t("admin.allTeamFieldsRequired"));
       return;
     }
 
@@ -117,10 +139,10 @@ export default function AdminDashboard() {
         loadAdminData();
       } else {
         const err = await res.json();
-        setTeamFormError(err.error || "Action failed.");
+        setTeamFormError(err.error || t("admin.actionFailed"));
       }
     } catch (err) {
-      setTeamFormError("Server communications failed.");
+      setTeamFormError(t("admin.serverCommunicationFailed"));
     } finally {
       setIsSubmittingTeam(false);
     }
@@ -149,7 +171,7 @@ export default function AdminDashboard() {
 
   // CRUD: DELETE RESCUE TEAM
   const handleDeleteTeam = async (id: string) => {
-    if (!confirm("Are you sure you want to remove this rescue team from database?")) return;
+    if (!confirm(t("admin.confirmDeleteTeam"))) return;
     try {
       const res = await fetch(`/api/teams?id=${id}`, {
         method: "DELETE",
@@ -183,7 +205,7 @@ export default function AdminDashboard() {
         setSelectedTeamId("");
         loadAdminData();
       } else {
-        alert("Failed to allocate rescue team.");
+        alert(t("admin.failedAllocateTeam"));
       }
     } catch (e) {
       console.error(e);
@@ -244,7 +266,7 @@ export default function AdminDashboard() {
     return (
       <div className="flex-grow flex items-center justify-center bg-[#0B132B] min-h-screen text-white">
         <span className="font-extrabold text-sm tracking-wider text-orange-500 animate-pulse">
-          LOADING ADMIN CONTROL VAULT...
+          {t("admin.loading")}
         </span>
       </div>
     );
@@ -256,20 +278,20 @@ export default function AdminDashboard() {
       {/* Header Info */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/5 pb-6">
         <div>
-          <span className="text-[#F15A24] font-black text-xs uppercase tracking-widest block">Core Administrator Control</span>
-          <h1 className="text-3xl font-black mt-1">Namaste, Admin Portal</h1>
-          <p className="text-xs text-white/50">Oversee donations, assign rescue teams, and direct emergency dispatches.</p>
+          <span className="text-[#F15A24] font-black text-xs uppercase tracking-widest block">{t("admin.coreControl")}</span>
+          <h1 className="text-3xl font-black mt-1">{t("admin.portalTitle")}</h1>
+          <p className="text-xs text-white/50">{t("admin.portalSubtitle")}</p>
         </div>
       </div>
 
       {/* ANALYTICS HIGHLIGHT CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: "Total Donations", val: `₹${totalDonationVal.toLocaleString()}`, icon: DollarSign, color: "border-orange-500/20 text-orange-400" },
-          { label: "Rescue Tickets", val: tickets.length, icon: Ambulance, color: "border-white/10 text-white" },
-          { label: "Pending Response", val: tickets.filter(t => t.status === "Pending").length, icon: Clock, color: "border-amber-500/20 text-amber-400" },
-          { label: "Closed Successful", val: tickets.filter(t => t.status === "Closed").length, icon: CheckCircle, color: "border-emerald-500/20 text-emerald-400" },
-          { label: "Active Rescue Units", val: activeTeamsCount, icon: Users, color: "border-blue-500/20 text-blue-400" },
+          { label: t("admin.totalDonations"), val: `₹${totalDonationVal.toLocaleString()}`, icon: DollarSign, color: "border-orange-500/20 text-orange-400" },
+          { label: t("admin.tabTickets"), val: tickets.length, icon: Ambulance, color: "border-white/10 text-white" },
+          { label: t("admin.pendingResponse"), val: tickets.filter(t => t.status === "Pending").length, icon: Clock, color: "border-amber-500/20 text-amber-400" },
+          { label: t("admin.closedSuccessful"), val: tickets.filter(t => t.status === "Closed").length, icon: CheckCircle, color: "border-emerald-500/20 text-emerald-400" },
+          { label: t("admin.activeRescueUnits"), val: activeTeamsCount, icon: Users, color: "border-blue-500/20 text-blue-400" },
         ].map((item, idx) => (
           <div key={idx} className={`bg-white/[0.01] border p-5 rounded-2xl space-y-1.5 hover:border-orange-500/10 transition-colors ${item.color}`}>
             <div className="flex justify-between items-center opacity-60">
@@ -289,7 +311,7 @@ export default function AdminDashboard() {
         <div className="flex justify-between items-center border-b border-white/5 pb-4">
           <h3 className="font-extrabold text-lg flex items-center gap-2">
             <Users className="w-5 h-5 text-orange-400" />
-            Rescue Team Management
+            {t("admin.teamManagementTitle")}
           </h3>
           <button
             onClick={() => {
@@ -300,25 +322,25 @@ export default function AdminDashboard() {
             className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-white text-xs font-bold rounded-xl"
           >
             <Plus className="w-4 h-4" />
-            Create Rescue Team
+            {t("admin.createTeamBtn")}
           </button>
         </div>
 
         {isLoading ? (
-          <div className="text-center py-10 text-xs text-white/40">Loading rescue teams...</div>
+          <div className="text-center py-10 text-xs text-white/40">{t("admin.loadingTeams")}</div>
         ) : teams.length === 0 ? (
-          <div className="text-center py-10 text-xs text-white/40">No rescue teams registered.</div>
+          <div className="text-center py-10 text-xs text-white/40">{t("admin.noTeams")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-white/10 text-white/50 uppercase tracking-widest font-black text-[9px]">
-                  <th className="py-3 px-4">Team Name</th>
-                  <th className="py-3 px-4">Mobile</th>
-                  <th className="py-3 px-4">Locality (City/State)</th>
-                  <th className="py-3 px-4">Email</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th className="py-3 px-4">{t("admin.teamName")}</th>
+                  <th className="py-3 px-4">{t("admin.mobileNumber")}</th>
+                  <th className="py-3 px-4">{t("admin.locality")}</th>
+                  <th className="py-3 px-4">{t("admin.email")}</th>
+                  <th className="py-3 px-4">{t("admin.status")}</th>
+                  <th className="py-3 px-4 text-right">{t("team.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -332,13 +354,13 @@ export default function AdminDashboard() {
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
                         t.status === "Active" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
                       }`}>
-                        {t.status}
+                        {t.status === "Active" ? t("admin.active") : t("admin.disabled")}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right space-x-2">
                       <button
                         onClick={() => handleToggleTeamStatus(t)}
-                        title={t.status === "Active" ? "Disable Team" : "Activate Team"}
+                        title={t.status === "Active" ? t("admin.disableTeam") : t("admin.activateTeam")}
                         className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-white"
                       >
                         <Power className="w-3.5 h-3.5" />
@@ -373,7 +395,7 @@ export default function AdminDashboard() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
           <h3 className="font-extrabold text-lg flex items-center gap-2">
             <Ambulance className="w-5 h-5 text-orange-400" />
-            Dispatch Operations Terminal
+            {t("admin.dispatchTerminal")}
           </h3>
           
           <div className="flex gap-4 w-full sm:w-auto">
@@ -382,7 +404,7 @@ export default function AdminDashboard() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/40" />
               <input
                 type="text"
-                placeholder="Search ticket ID or species..."
+                placeholder={t("admin.searchPlaceholder")}
                 value={ticketSearch}
                 onChange={(e) => setTicketSearch(e.target.value)}
                 className="w-full bg-slate-950 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
@@ -392,10 +414,10 @@ export default function AdminDashboard() {
             <button
               onClick={handlePrintTicketsReport}
               className="p-2 border border-white/15 rounded-xl text-white/60 hover:text-white hover:bg-white/5 flex items-center gap-1.5 text-xs font-bold"
-              title="Download print ledger"
+              title={t("admin.printTooltip")}
             >
               <Download className="w-4 h-4" />
-              Print Log
+              {t("admin.printLog")}
             </button>
           </div>
         </div>
@@ -412,66 +434,66 @@ export default function AdminDashboard() {
                   : "border-transparent text-white/50 hover:text-white"
               }`}
             >
-              {tab}
+              {tab === "All" ? t("admin.tabAll") : tab === "Pending" ? t("user.pending") : tab === "Accepted" ? t("user.accepted") : t("user.closed")}
             </button>
           ))}
         </div>
 
         {/* Tickets Allocation list */}
         {isLoading ? (
-          <div className="text-center py-10 text-xs text-white/40">Loading rescue incidents...</div>
+          <div className="text-center py-10 text-xs text-white/40">{t("admin.loadingIncidents")}</div>
         ) : filteredTickets.length === 0 ? (
-          <div className="text-center py-10 text-xs text-white/40">No tickets found matching current parameters.</div>
+          <div className="text-center py-10 text-xs text-white/40">{t("admin.noTicketsFound")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-white/10 text-white/50 uppercase tracking-widest font-black text-[9px]">
-                  <th className="py-3 px-4">Ticket ID</th>
-                  <th className="py-3 px-4">Animal Type</th>
-                  <th className="py-3 px-4">Locality Grid</th>
-                  <th className="py-3 px-4">Assigned Team Unit</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Date Reported</th>
-                  <th className="py-3 px-4 text-right">Dispatch Control</th>
+                  <th className="py-3 px-4">{t("admin.ticketIdHeader")}</th>
+                  <th className="py-3 px-4">{t("user.animalType")}</th>
+                  <th className="py-3 px-4">{t("admin.localityGrid")}</th>
+                  <th className="py-3 px-4">{t("user.assignedTeam")}</th>
+                  <th className="py-3 px-4">{t("team.status")}</th>
+                  <th className="py-3 px-4">{t("team.reportedOn")}</th>
+                  <th className="py-3 px-4 text-right">{t("admin.dispatchControl")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filteredTickets.map((t) => (
-                  <tr key={t.id} className="hover:bg-white/[0.01]">
-                    <td className="py-3 px-4 font-black text-white">{t.id}</td>
+                {filteredTickets.map((tItem) => (
+                  <tr key={tItem.id} className="hover:bg-white/[0.01]">
+                    <td className="py-3 px-4 font-black text-white">{tItem.id}</td>
                     <td className="py-3 px-4 font-extrabold text-white/95">
-                      {t.animalType === "Other" ? t.customAnimalType : t.animalType}
+                      {tItem.animalType === "Other" ? tItem.customAnimalType : getAnimalTypeTranslation(tItem.animalType)}
                     </td>
-                    <td className="py-3 px-4 text-white/70 font-mono">lat: {t.latitude}, lng: {t.longitude}</td>
+                    <td className="py-3 px-4 text-white/70 font-mono">lat: {tItem.latitude}, lng: {tItem.longitude}</td>
                     <td className="py-3 px-4 font-extrabold text-orange-400">
-                      {t.assignedRescueTeamName || "⚠️ UNASSIGNED DISPATCH"}
+                      {tItem.assignedRescueTeamName || t("admin.unassignedDispatch")}
                     </td>
                     <td className="py-3 px-4">
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                        t.status === "Closed"
+                        tItem.status === "Closed"
                           ? "bg-emerald-500/10 text-emerald-400"
-                          : t.status === "Accepted"
+                          : tItem.status === "Accepted"
                           ? "bg-blue-500/10 text-blue-400"
                           : "bg-amber-500/10 text-amber-400"
                       }`}>
-                        {t.status}
+                        {getStatusTranslation(tItem.status)}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-white/40">{new Date(t.createdAt).toLocaleDateString()}</td>
+                    <td className="py-3 px-4 text-white/40">{new Date(tItem.createdAt).toLocaleDateString()}</td>
                     <td className="py-3 px-4 text-right">
-                      {t.status !== "Closed" ? (
+                      {tItem.status !== "Closed" ? (
                         <button
                           onClick={() => {
-                            setAllocatingTicket(t);
-                            setSelectedTeamId(t.assignedRescueTeamId || "");
+                            setAllocatingTicket(tItem);
+                            setSelectedTeamId(tItem.assignedRescueTeamId || "");
                           }}
                           className="px-3 py-1.5 bg-white/5 hover:bg-orange-500 hover:text-white border border-white/10 hover:border-orange-500 rounded-lg text-white/70 font-bold transition-all"
                         >
-                          {t.assignedRescueTeamId ? "Re-route Team" : "Assign Team"}
+                          {tItem.assignedRescueTeamId ? t("admin.rerouteTeam") : t("admin.assignTeam")}
                         </button>
                       ) : (
-                        <span className="text-[10px] text-white/30 italic">Incident Closed</span>
+                        <span className="text-[10px] text-white/30 italic">{t("admin.incidentClosed")}</span>
                       )}
                     </td>
                   </tr>
@@ -487,7 +509,7 @@ export default function AdminDashboard() {
         <div className="flex justify-between items-center border-b border-white/5 pb-4">
           <h3 className="font-extrabold text-lg flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-orange-400" />
-            Donations General Ledger
+            {t("admin.donationsLedgerTitle")}
           </h3>
           
           <button
@@ -496,25 +518,25 @@ export default function AdminDashboard() {
             className="flex items-center gap-1.5 px-4 py-2 bg-[#0B132B] hover:bg-[#1E293B] border border-white/10 text-orange-400 text-xs font-extrabold rounded-xl"
           >
             <Download className="w-4 h-4" />
-            Export CSV Reports
+            {t("admin.exportCsvBtn")}
           </button>
         </div>
 
         {isLoading ? (
-          <div className="text-center py-10 text-xs text-white/40">Loading donation ledgers...</div>
+          <div className="text-center py-10 text-xs text-white/40">{t("admin.loadingDonations")}</div>
         ) : donations.length === 0 ? (
-          <div className="text-center py-10 text-xs text-white/40">No online donations logged yet.</div>
+          <div className="text-center py-10 text-xs text-white/40">{t("admin.emptyDonations")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-white/10 text-white/50 uppercase tracking-widest font-black text-[9px]">
-                  <th className="py-3 px-4">Transaction ID</th>
-                  <th className="py-3 px-4">Donor Name</th>
-                  <th className="py-3 px-4">Mobile Number</th>
-                  <th className="py-3 px-4">Amount</th>
-                  <th className="py-3 px-4">Payment Method</th>
-                  <th className="py-3 px-4">Payment Date</th>
+                  <th className="py-3 px-4">{t("admin.transactionId")}</th>
+                  <th className="py-3 px-4">{t("admin.donorName")}</th>
+                  <th className="py-3 px-4">{t("admin.mobileNumber")}</th>
+                  <th className="py-3 px-4">{t("admin.amount")}</th>
+                  <th className="py-3 px-4">{t("admin.paymentMode")}</th>
+                  <th className="py-3 px-4">{t("admin.paymentDate")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -546,7 +568,7 @@ export default function AdminDashboard() {
             </button>
 
             <h3 className="text-lg font-black mb-6 text-white border-b border-white/5 pb-3">
-              {editingTeam ? `Edit Team: ${editingTeam.name}` : "Register New Rescue Team Unit"}
+              {editingTeam ? `${t("admin.editTeamBtn")}: ${editingTeam.name}` : t("admin.registerNewTeam")}
             </h3>
 
             {teamFormError && (
@@ -559,23 +581,23 @@ export default function AdminDashboard() {
             <form onSubmit={handleTeamSubmit} className="space-y-4 text-xs font-bold text-white/70">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block mb-1.5 uppercase tracking-wider text-white/50">Team/Unit Name</label>
+                  <label className="block mb-1.5 uppercase tracking-wider text-white/50">{t("admin.teamNameLabel")}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Varanasi Gau Sewa Unit"
+                    placeholder={t("admin.teamNamePlaceholder")}
                     value={teamForm.name}
                     onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block mb-1.5 uppercase tracking-wider text-white/50">Mobile (For OTP Access)</label>
+                  <label className="block mb-1.5 uppercase tracking-wider text-white/50">{t("admin.mobileOtpLabel")}</label>
                   <input
                     type="tel"
                     required
                     pattern="[0-9]{10}"
-                    placeholder="Enter 10 digit number"
+                    placeholder={t("admin.mobilePlaceholder")}
                     value={teamForm.mobile}
                     onChange={(e) => setTeamForm({ ...teamForm, mobile: e.target.value })}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white font-mono"
@@ -585,22 +607,22 @@ export default function AdminDashboard() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block mb-1.5 uppercase tracking-wider text-white/50">City Locality</label>
+                  <label className="block mb-1.5 uppercase tracking-wider text-white/50">{t("admin.cityLabel")}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Varanasi"
+                    placeholder={t("admin.cityPlaceholder")}
                     value={teamForm.city}
                     onChange={(e) => setTeamForm({ ...teamForm, city: e.target.value })}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block mb-1.5 uppercase tracking-wider text-white/50">State Locality</label>
+                  <label className="block mb-1.5 uppercase tracking-wider text-white/50">{t("admin.stateLabel")}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Uttar Pradesh"
+                    placeholder={t("admin.statePlaceholder")}
                     value={teamForm.state}
                     onChange={(e) => setTeamForm({ ...teamForm, state: e.target.value })}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white"
@@ -609,11 +631,11 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="block mb-1.5 uppercase tracking-wider text-white/50">Email ID Address</label>
+                <label className="block mb-1.5 uppercase tracking-wider text-white/50">{t("admin.emailLabel")}</label>
                 <input
                   type="email"
                   required
-                  placeholder="name@hindufoundation.org"
+                  placeholder={t("admin.emailPlaceholder")}
                   value={teamForm.email}
                   onChange={(e) => setTeamForm({ ...teamForm, email: e.target.value })}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white"
@@ -621,14 +643,14 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="block mb-1.5 uppercase tracking-wider text-white/50">Operation Status</label>
+                <label className="block mb-1.5 uppercase tracking-wider text-white/50">{t("admin.operationStatusLabel")}</label>
                 <select
                   value={teamForm.status}
                   onChange={(e) => setTeamForm({ ...teamForm, status: e.target.value as any })}
                   className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white"
                 >
-                  <option value="Active">Active & Deployable</option>
-                  <option value="Disabled">Disabled</option>
+                  <option value="Active">{t("admin.activeDeployable")}</option>
+                  <option value="Disabled">{t("admin.disabled")}</option>
                 </select>
               </div>
 
@@ -638,14 +660,14 @@ export default function AdminDashboard() {
                   onClick={() => setShowTeamModal(false)}
                   className="w-1/3 py-3 border border-white/10 rounded-xl text-xs font-bold text-white/60 hover:text-white"
                 >
-                  Cancel
+                  {t("admin.cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingTeam}
                   className="w-2/3 py-3 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-white font-black rounded-xl text-xs transition-opacity flex items-center justify-center cursor-pointer"
                 >
-                  {isSubmittingTeam ? "Saving details..." : "Save Rescue Team Unit"}
+                  {isSubmittingTeam ? t("admin.savingDetails") : t("admin.saveTeamBtn")}
                 </button>
               </div>
             </form>
@@ -665,35 +687,35 @@ export default function AdminDashboard() {
             </button>
 
             <h3 className="text-lg font-black mb-4 border-b border-white/5 pb-3">
-              Dispatch Saffron Rescue Unit
+              {t("admin.dispatchSaffronUnit")}
             </h3>
 
             <div className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl mb-6 text-xs text-white/70 space-y-2">
               <div>
-                <span className="block text-[9px] uppercase text-white/40 font-bold">Allocating Ticket</span>
-                <span className="font-extrabold text-white">{allocatingTicket.id} ({allocatingTicket.animalType})</span>
+                <span className="block text-[9px] uppercase text-white/40 font-bold">{t("admin.allocatingTicket")}</span>
+                <span className="font-extrabold text-white">{allocatingTicket.id} ({allocatingTicket.animalType === "Other" ? allocatingTicket.customAnimalType : getAnimalTypeTranslation(allocatingTicket.animalType)})</span>
               </div>
               <div>
-                <span className="block text-[9px] uppercase text-white/40 font-bold">Reported Coordinates</span>
+                <span className="block text-[9px] uppercase text-white/40 font-bold">{t("admin.reportedCoordinates")}</span>
                 <span className="font-mono text-white/80">lat: {allocatingTicket.latitude}, lng: {allocatingTicket.longitude}</span>
               </div>
             </div>
 
             <form onSubmit={handleAssignTeamSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">Select Saffron Active Team Unit</label>
+                <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">{t("admin.selectSaffronActiveTeam")}</label>
                 <select
                   required
                   value={selectedTeamId}
                   onChange={(e) => setSelectedTeamId(e.target.value)}
                   className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-orange-500"
                 >
-                  <option value="">-- Choose Active Team --</option>
+                  <option value="">{t("admin.chooseActiveTeamOption")}</option>
                   {teams
-                    .filter((t) => t.status === "Active")
-                    .map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} ({t.city})
+                    .filter((tItem) => tItem.status === "Active")
+                    .map((tItem) => (
+                      <option key={tItem.id} value={tItem.id}>
+                        {tItem.name} ({tItem.city})
                       </option>
                     ))}
                 </select>
@@ -704,7 +726,7 @@ export default function AdminDashboard() {
                 disabled={!selectedTeamId}
                 className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 disabled:from-blue-600/50 text-white font-black rounded-xl text-xs shadow-lg transition-all flex items-center justify-center cursor-pointer"
               >
-                Allocate & Dispatch Saffron Ambulance
+                {t("admin.allocateDispatchAmbulance")}
               </button>
             </form>
           </div>

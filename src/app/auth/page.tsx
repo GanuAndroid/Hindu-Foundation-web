@@ -3,11 +3,13 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { Heart, Smartphone, ShieldCheck, UserCheck, AlertTriangle } from "lucide-react";
 
 function AuthPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
   
   // Detect role from URL query param, default to "user" (citizen)
   const roleFromUrl = (searchParams.get("role") as any) || "user";
@@ -43,7 +45,7 @@ function AuthPageContent() {
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mobile || mobile.length !== 10) {
-      alert("Please enter a valid 10-digit mobile number.");
+      alert(t("auth.invalidMobileError"));
       return;
     }
 
@@ -60,7 +62,7 @@ function AuthPageContent() {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otp || otp.length !== 6) {
-      alert("Please enter the 6-digit OTP code.");
+      alert(t("auth.emptyOtpError"));
       return;
     }
 
@@ -76,15 +78,21 @@ function AuthPageContent() {
   };
 
   const getRoleTitle = () => {
-    if (role === "admin") return "Administrator Gateway";
-    if (role === "team") return "Rescue Team Operations";
-    return "Citizen Reporting Portal";
+    if (role === "admin") return `${t("auth.admin")} Portal`;
+    if (role === "team") return `${t("auth.rescueTeam")} Portal`;
+    return `${t("auth.citizenUser")} Portal`;
   };
 
   const getRoleBadgeColor = () => {
     if (role === "admin") return "from-purple-500 to-indigo-600 border-purple-500/30";
     if (role === "team") return "from-blue-500 to-cyan-600 border-blue-500/30";
     return "from-[#F15A24] to-[#FF8C00] border-orange-500/30";
+  };
+
+  const getRoleBadgeText = () => {
+    if (role === "admin") return t("auth.admin");
+    if (role === "team") return t("auth.rescueTeam");
+    return t("auth.citizenUser");
   };
 
   return (
@@ -94,7 +102,7 @@ function AuthPageContent() {
       
       <div className="max-w-md w-full bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
         
-        {/* Top Saffron Glow Decoration */}
+        {/* Top Glow Decoration */}
         <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#F15A24] to-[#FF8C00]" />
 
         <div className="text-center space-y-4 mb-8">
@@ -108,7 +116,7 @@ function AuthPageContent() {
           <div>
             <div className="flex justify-center gap-1.5 mb-2">
               <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase border bg-gradient-to-r ${getRoleBadgeColor()}`}>
-                {role} role
+                {getRoleBadgeText()}
               </span>
             </div>
             <h2 className="text-2xl font-black text-white">{getRoleTitle()}</h2>
@@ -126,15 +134,12 @@ function AuthPageContent() {
         {/* STEP A: MOBILE INPUT */}
         {step === "mobile" && (
           <form onSubmit={handleSendOtp} className="space-y-5">
-
-
-
             {role === "user" && (
               <div>
-                <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">Full Name (Optional)</label>
+                <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">{t("auth.fullNameOptional")}</label>
                 <input
                   type="text"
-                  placeholder="Enter your name"
+                  placeholder={t("auth.placeholderName")}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 transition-colors text-white"
@@ -143,14 +148,14 @@ function AuthPageContent() {
             )}
 
             <div>
-              <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">Mobile Number</label>
+              <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">{t("auth.mobileNumber")}</label>
               <div className="relative">
                 <Smartphone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/40 w-4 h-4" />
                 <input
                   type="tel"
                   required
                   pattern="[0-9]{10}"
-                  placeholder="Enter 10-digit mobile number"
+                  placeholder={t("auth.placeholderMobile")}
                   value={mobile}
                   onChange={(e) => setMobile(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-orange-500 transition-colors text-white font-mono"
@@ -163,7 +168,7 @@ function AuthPageContent() {
               disabled={isSending}
               className="w-full py-3.5 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-white font-black rounded-xl shadow-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 text-sm cursor-pointer"
             >
-              {isSending ? "Requesting OTP..." : "Get OTP Verification Code"}
+              {isSending ? t("home.submitting") : t("auth.sendOtp")}
             </button>
           </form>
         )}
@@ -175,20 +180,20 @@ function AuthPageContent() {
               <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs font-bold flex items-start gap-2.5">
                 <ShieldCheck className="w-5 h-5 flex-shrink-0 mt-0.5" />
                 <div>
-                  <span className="block">Firebase OTP Sent!</span>
-                  <span className="block font-medium text-[11px] text-white/70 mt-0.5">Please check your mobile phone for the 6-digit SMS verification code.</span>
+                  <span className="block">{t("auth.otpSentSuccess")}</span>
+                  <span className="block font-medium text-[11px] text-white/70 mt-0.5">{t("auth.enterOtp")}</span>
                 </div>
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-bold text-white/60 uppercase mb-2 text-center">Enter 6-Digit OTP</label>
+              <label className="block text-xs font-bold text-white/60 uppercase mb-2 text-center">{t("auth.verificationCode")}</label>
               <input
                 type="text"
                 required
                 maxLength={6}
                 pattern="[0-9]{6}"
-                placeholder="Enter 6-digit code"
+                placeholder={t("auth.placeholderOtp")}
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center text-lg font-black tracking-[0.4em] focus:outline-none focus:border-orange-500 transition-colors text-white font-mono placeholder:tracking-normal placeholder:font-bold"
@@ -201,14 +206,14 @@ function AuthPageContent() {
                 onClick={() => setStep("mobile")}
                 className="w-1/3 py-3 border border-white/10 rounded-xl text-xs font-bold text-white/60 hover:text-white transition-colors"
               >
-                Go Back
+                {t("admin.cancel")}
               </button>
               <button
                 type="submit"
                 disabled={isVerifying}
                 className="w-2/3 py-3 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-white font-black rounded-xl shadow-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 text-xs cursor-pointer"
               >
-                {isVerifying ? "Verifying..." : "Verify & Sign In"}
+                {isVerifying ? t("home.submitting") : t("auth.verifyOtp")}
               </button>
             </div>
           </form>
@@ -219,13 +224,13 @@ function AuthPageContent() {
           <span className="text-white/40 font-semibold block">Need another gateway?</span>
           <div className="flex justify-center gap-4 text-[#F15A24] font-bold">
             {role !== "user" && (
-              <button onClick={() => { setRole("user"); setStep("mobile"); }} className="hover:underline">Citizen Reporter</button>
+              <button onClick={() => { setRole("user"); setStep("mobile"); }} className="hover:underline">{t("auth.citizenUser")}</button>
             )}
             {role !== "team" && (
-              <button onClick={() => { setRole("team"); setStep("mobile"); }} className="hover:underline">Rescue Team</button>
+              <button onClick={() => { setRole("team"); setStep("mobile"); }} className="hover:underline">{t("auth.rescueTeam")}</button>
             )}
             {role !== "admin" && (
-              <button onClick={() => { setRole("admin"); setStep("mobile"); }} className="hover:underline">NGO Admin</button>
+              <button onClick={() => { setRole("admin"); setStep("mobile"); }} className="hover:underline">{t("auth.admin")}</button>
             )}
           </div>
         </div>

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import MapSelector from "@/components/MapSelector";
 import {
   Plus,
@@ -15,14 +16,13 @@ import {
   ListFilter,
   Eye,
   X,
-  FileText,
-  MapPin,
-  MapPinIcon
+  MapPin
 } from "lucide-react";
 import { Ticket } from "@/lib/types";
 
 export default function UserDashboard() {
   const { user, loading } = useAuth();
+  const { t, language } = useLanguage();
   const router = useRouter();
 
   // Tickets state
@@ -70,7 +70,6 @@ export default function UserDashboard() {
     if (!user) return;
     setIsLoadingTickets(true);
     try {
-      // Find tickets reported by this user (we filter by creator name/mobile matching)
       const res = await fetch(`/api/tickets?createdBy=${encodeURIComponent(user.name)}`);
       if (res.ok) {
         const data = await res.json();
@@ -106,7 +105,7 @@ export default function UserDashboard() {
     }
   };
 
-  // Upload Photo to simulated S3
+  // Upload Photo
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -114,7 +113,6 @@ export default function UserDashboard() {
     setPhotoFile(file);
     setPhotoPreview(URL.createObjectURL(file));
     
-    // Auto-upload trigger
     setPhotoUploading(true);
     const uploadForm = new FormData();
     uploadForm.append("file", file);
@@ -138,7 +136,7 @@ export default function UserDashboard() {
     }
   };
 
-  // Upload Video to simulated S3
+  // Upload Video
   const handleVideoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -146,7 +144,6 @@ export default function UserDashboard() {
     setVideoFile(file);
     setVideoPreview(URL.createObjectURL(file));
 
-    // Auto-upload trigger
     setVideoUploading(true);
     const uploadForm = new FormData();
     uploadForm.append("file", file);
@@ -185,19 +182,19 @@ export default function UserDashboard() {
 
     // Mandatories checks
     if (!formData.imageUrl) {
-      setFormError("Animal image upload is required.");
+      setFormError(t("user.validationError"));
       return;
     }
     if (!formData.videoUrl) {
-      setFormError("Animal incident video is required.");
+      setFormError(t("user.validationError"));
       return;
     }
     if (formData.description.trim().length < 20) {
-      setFormError("Please provide a detailed description (minimum 20 characters).");
+      setFormError(t("user.validationError"));
       return;
     }
     if (formData.animalType === "Other" && !formData.customAnimalType) {
-      setFormError("Please clarify the species name since 'Other' was selected.");
+      setFormError(t("user.validationError"));
       return;
     }
 
@@ -214,7 +211,6 @@ export default function UserDashboard() {
 
       if (res.ok) {
         setShowCreateModal(false);
-        // Reset form data
         setFormData({
           eventId: "112",
           animalType: "Cow",
@@ -250,6 +246,26 @@ export default function UserDashboard() {
   const accepted = tickets.filter((t) => t.status === "Accepted").length;
   const closed = tickets.filter((t) => t.status === "Closed").length;
 
+  const getStatusTranslation = (status: string) => {
+    if (status === "Pending") return t("user.pending");
+    if (status === "Accepted") return t("user.accepted");
+    if (status === "Closed") return t("user.closed");
+    return status;
+  };
+
+  const getAnimalTypeTranslation = (type: string) => {
+    switch (type) {
+      case "Cow": return language === "hi" ? "गाय (Cow)" : "Cow";
+      case "Dog": return language === "hi" ? "कुत्ता (Dog)" : "Dog";
+      case "Monkey": return language === "hi" ? "बंदर (Monkey)" : "Monkey";
+      case "Cat": return language === "hi" ? "बिल्ली (Cat)" : "Cat";
+      case "Bird": return language === "hi" ? "पक्षी (Bird)" : "Bird";
+      case "Snake": return language === "hi" ? "साँप (Snake)" : "Snake";
+      case "Other": return language === "hi" ? "अन्य (Other)" : "Other";
+      default: return type;
+    }
+  };
+
   if (loading || !user) {
     return (
       <div className="flex-grow flex items-center justify-center bg-[#0B132B] min-h-screen text-white">
@@ -266,17 +282,17 @@ export default function UserDashboard() {
       {/* Header Info */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/5 pb-6">
         <div>
-          <span className="text-[#F15A24] font-black text-xs uppercase tracking-widest block">Citizen Dashboard</span>
-          <h1 className="text-3xl font-black mt-1">Namaste, {user.name}</h1>
+          <span className="text-[#F15A24] font-black text-xs uppercase tracking-widest block">{t("user.dashboardTitle")}</span>
+          <h1 className="text-3xl font-black mt-1">{language === "hi" ? "नमस्ते" : "Welcome"}, {user.name}</h1>
           <p className="text-xs text-white/50">Report stray animal emergencies and monitor operational updates.</p>
         </div>
         
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-white font-extrabold rounded-2xl shadow-lg shadow-orange-500/10 hover:scale-105 transition-transform"
+          className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-white font-extrabold rounded-2xl shadow-lg shadow-orange-500/10 hover:scale-105 transition-transform cursor-pointer"
         >
           <Plus className="w-5 h-5" />
-          Report Animal Case (112)
+          {t("user.createTicket")} (112)
         </button>
       </div>
 
@@ -284,9 +300,9 @@ export default function UserDashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Total Cases Created", val: total, color: "border-white/10 text-white/80" },
-          { label: "Pending Response", val: pending, color: "border-amber-500/20 text-amber-400" },
-          { label: "Accepted / Active", val: accepted, color: "border-blue-500/20 text-blue-400" },
-          { label: "Closed / Resolved", val: closed, color: "border-emerald-500/20 text-emerald-400" },
+          { label: t("user.pending"), val: pending, color: "border-amber-500/20 text-amber-400" },
+          { label: t("user.accepted"), val: accepted, color: "border-blue-500/20 text-blue-400" },
+          { label: t("user.closed"), val: closed, color: "border-emerald-500/20 text-emerald-400" },
         ].map((item, idx) => (
           <div key={idx} className={`bg-white/[0.01] border p-5 rounded-2xl space-y-1 ${item.color}`}>
             <span className="text-[10px] uppercase font-bold tracking-wider opacity-60">{item.label}</span>
@@ -302,7 +318,7 @@ export default function UserDashboard() {
         <div className="lg:col-span-2 space-y-4">
           <h3 className="font-extrabold text-lg flex items-center gap-2">
             <ListFilter className="w-5 h-5 text-orange-400" />
-            Your Rescue Reports
+            {t("user.caseHistory")}
           </h3>
 
           {isLoadingTickets ? (
@@ -311,33 +327,32 @@ export default function UserDashboard() {
             <div className="bg-white/[0.01] border border-white/5 rounded-3xl p-12 text-center space-y-4">
               <Compass className="w-12 h-12 text-orange-500/30 mx-auto" />
               <p className="text-white/50 text-sm font-semibold">No cases reported yet.</p>
-              <p className="text-white/40 text-xs max-w-sm mx-auto">Help street animals around you! Report any injured or sick cow, dog, bird, or snake using the button above.</p>
+              <p className="text-white/40 text-xs max-w-sm mx-auto">{t("user.emptyTickets")}</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {tickets.map((t) => (
+              {tickets.map((tItem) => (
                 <div
-                  key={t.id}
-                  onClick={() => handleViewTicket(t)}
+                  key={tItem.id}
+                  onClick={() => handleViewTicket(tItem)}
                   className={`bg-white/[0.01] border border-white/5 p-4 rounded-2xl flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between cursor-pointer hover:bg-white/[0.03] transition-colors relative overflow-hidden ${
-                    activeTicket?.id === t.id ? "border-orange-500/30 bg-orange-500/[0.02]" : ""
+                    activeTicket?.id === tItem.id ? "border-orange-500/30 bg-orange-500/[0.02]" : ""
                   }`}
                 >
                   <div className="flex gap-4">
-                    {/* Thumbnail preview */}
                     <img
-                      src={t.imageUrl}
-                      alt={t.animalType}
+                      src={tItem.imageUrl}
+                      alt={tItem.animalType}
                       className="w-16 h-16 rounded-xl object-cover border border-white/10"
                     />
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-black text-white text-sm">{t.id}</span>
-                        <span className="text-xs text-white/50">({t.animalType})</span>
+                        <span className="font-black text-white text-sm">{tItem.id}</span>
+                        <span className="text-xs text-white/50">({getAnimalTypeTranslation(tItem.animalType)})</span>
                       </div>
-                      <p className="text-xs text-white/60 line-clamp-1 mt-1 max-w-xs">{t.description}</p>
+                      <p className="text-xs text-white/60 line-clamp-1 mt-1 max-w-xs">{tItem.description}</p>
                       <span className="text-[10px] text-white/40 block mt-1.5">
-                        Created: {new Date(t.createdAt).toLocaleString()}
+                        Created: {new Date(tItem.createdAt).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -345,14 +360,14 @@ export default function UserDashboard() {
                   <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
                     <span
                       className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${
-                        t.status === "Closed"
+                        tItem.status === "Closed"
                           ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                          : t.status === "Accepted"
+                          : tItem.status === "Accepted"
                           ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
                           : "bg-amber-500/10 border-amber-500/20 text-amber-400"
                       }`}
                     >
-                      {t.status}
+                      {getStatusTranslation(tItem.status)}
                     </span>
                     <button className="p-2 bg-white/5 rounded-lg text-white/60 hover:text-white transition-colors">
                       <Eye className="w-4 h-4" />
@@ -368,7 +383,7 @@ export default function UserDashboard() {
         <div className="space-y-4">
           <h3 className="font-extrabold text-lg flex items-center gap-2">
             <Clock className="w-5 h-5 text-orange-400" />
-            Live Case Progress
+            {t("user.ticketStatus")}
           </h3>
 
           {activeTicket ? (
@@ -376,7 +391,7 @@ export default function UserDashboard() {
               <div className="flex justify-between items-start border-b border-white/5 pb-4">
                 <div>
                   <h4 className="font-extrabold text-sm text-white">{activeTicket.id}</h4>
-                  <span className="text-[10px] text-white/40">Type: {activeTicket.animalType}</span>
+                  <span className="text-[10px] text-white/40">{t("user.animalType")}: {getAnimalTypeTranslation(activeTicket.animalType)}</span>
                 </div>
                 <span
                   className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${
@@ -387,14 +402,14 @@ export default function UserDashboard() {
                       : "bg-amber-500/10 border-amber-500/20 text-amber-400"
                   }`}
                 >
-                  {activeTicket.status}
+                  {getStatusTranslation(activeTicket.status)}
                 </span>
               </div>
 
               {/* Photos & Videos Display */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">Uploaded Photo</span>
+                  <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">{t("user.uploadPhoto")}</span>
                   <img
                     src={activeTicket.imageUrl}
                     className="w-full h-24 object-cover rounded-xl border border-white/5"
@@ -402,7 +417,7 @@ export default function UserDashboard() {
                   />
                 </div>
                 <div>
-                  <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">Incident Video</span>
+                  <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">{t("user.uploadVideo")}</span>
                   <video
                     src={activeTicket.videoUrl}
                     controls
@@ -413,29 +428,28 @@ export default function UserDashboard() {
 
               {/* Assignment details */}
               <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-2">
-                <span className="text-[10px] uppercase font-bold text-orange-400">Assigned Rescue Team</span>
+                <span className="text-[10px] uppercase font-bold text-orange-400">{t("user.assignedTeam")}</span>
                 {activeTicket.assignedRescueTeamName ? (
                   <div>
                     <div className="font-black text-white text-xs">{activeTicket.assignedRescueTeamName}</div>
                     <div className="text-[10px] text-white/50 mt-0.5">Assigned time: {activeTicket.acceptedAt ? new Date(activeTicket.acceptedAt).toLocaleTimeString() : "Pending"}</div>
                   </div>
                 ) : (
-                  <div className="text-xs text-white/40 font-semibold italic">Waiting for team assignment...</div>
+                  <div className="text-xs text-white/40 font-semibold italic">{t("user.notAssigned")}</div>
                 )}
               </div>
 
               {/* Case History Audits timeline */}
               <div className="space-y-4">
-                <span className="text-[10px] uppercase font-bold text-white/40 block">Operational Audit Logs</span>
+                <span className="text-[10px] uppercase font-bold text-white/40 block">Audit Logs</span>
                 {isLoadingHistory ? (
                   <div className="text-center text-[10px] text-white/40 py-4">Fetching logs...</div>
                 ) : (
                   <div className="relative border-l border-white/5 pl-4 ml-2 space-y-4 text-xs">
-                    {ticketHistory.map((h, i) => (
+                    {ticketHistory.map((h) => (
                       <div key={h.id} className="relative">
-                        {/* Dot indicator */}
                         <div className="absolute -left-[21px] top-1.5 w-2 h-2 rounded-full bg-orange-500 border border-slate-900" />
-                        <div className="font-extrabold text-white/80">{h.status}</div>
+                        <div className="font-extrabold text-white/80">{getStatusTranslation(h.status)}</div>
                         <p className="text-white/60 mt-0.5 text-[11px] leading-relaxed">{h.remarks}</p>
                         <span className="text-[9px] text-white/40 block mt-1">
                           {new Date(h.createdAt).toLocaleString()} | By: {h.updatedBy}
@@ -451,14 +465,14 @@ export default function UserDashboard() {
                 <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-2xl space-y-3">
                   <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
                     <CheckCircle className="w-4 h-4" />
-                    Rescue Outcome: {activeTicket.closureReason}
+                    {t("user.closeReason")}: {activeTicket.closureReason}
                   </div>
                   {activeTicket.closureDescription && (
                     <p className="text-[11px] text-white/70 italic leading-relaxed">"{activeTicket.closureDescription}"</p>
                   )}
                   {activeTicket.closurePhotoUrl && (
                     <div>
-                      <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">Final Proof Recovery Photo</span>
+                      <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">{t("user.closePhoto")}</span>
                       <img
                         src={activeTicket.closurePhotoUrl}
                         className="w-full h-32 object-cover rounded-xl border border-white/5"
@@ -490,7 +504,7 @@ export default function UserDashboard() {
 
             <h3 className="text-xl font-black mb-6 text-white flex items-center gap-2 border-b border-white/5 pb-4">
               <Plus className="w-6 h-6 text-orange-400" />
-              Report New Animal Emergency (Event 112)
+              {t("user.createTicket")} (Event 112)
             </h3>
 
             {formError && (
@@ -502,7 +516,6 @@ export default function UserDashboard() {
 
             <form onSubmit={handleCreateTicketSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Event ID default */}
                 <div>
                   <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">Event ID</label>
                   <input
@@ -513,17 +526,16 @@ export default function UserDashboard() {
                   />
                 </div>
 
-                {/* Animal Type dropdown */}
                 <div>
-                  <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">Animal Type</label>
+                  <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">{t("user.animalType")}</label>
                   <select
                     value={formData.animalType}
                     onChange={(e) => setFormData({ ...formData, animalType: e.target.value })}
                     className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-orange-500"
                   >
-                    {["Cow", "Dog", "Monkey", "Cat", "Bird", "Snake", "Other"].map((t) => (
-                      <option key={t} value={t}>
-                        {t}
+                    {["Cow", "Dog", "Monkey", "Cat", "Bird", "Snake", "Other"].map((tItem) => (
+                      <option key={tItem} value={tItem}>
+                        {getAnimalTypeTranslation(tItem)}
                       </option>
                     ))}
                   </select>
@@ -532,11 +544,11 @@ export default function UserDashboard() {
 
               {formData.animalType === "Other" && (
                 <div className="animate-fade-in">
-                  <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">Specify Animal Species</label>
+                  <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">{t("user.customAnimalType")}</label>
                   <input
                     type="text"
                     required
-                    placeholder="E.g., Injured Deer, Squirrel"
+                    placeholder={t("user.placeholderCustomAnimal")}
                     value={formData.customAnimalType}
                     onChange={(e) => setFormData({ ...formData, customAnimalType: e.target.value })}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white"
@@ -546,9 +558,8 @@ export default function UserDashboard() {
 
               {/* Photo & Video Upload */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Photo upload */}
                 <div className="border-2 border-dashed border-white/10 hover:border-orange-500/30 rounded-2xl p-4 text-center space-y-3 transition-colors relative">
-                  <span className="block text-xs font-bold text-white/60 uppercase">Upload Animal Photo (Required)</span>
+                  <span className="block text-xs font-bold text-white/60 uppercase">{t("user.uploadPhoto")}</span>
                   <div className="flex items-center justify-center gap-3">
                     <FileImage className="w-8 h-8 text-orange-400" />
                     <input
@@ -559,7 +570,7 @@ export default function UserDashboard() {
                       className="text-xs text-white/40 w-full"
                     />
                   </div>
-                  {photoUploading && <div className="text-[10px] text-orange-400 font-bold">Uploading file locally...</div>}
+                  {photoUploading && <div className="text-[10px] text-orange-400 font-bold">Uploading file...</div>}
                   {photoPreview && (
                     <img
                       src={photoPreview}
@@ -569,9 +580,8 @@ export default function UserDashboard() {
                   )}
                 </div>
 
-                {/* Video upload */}
                 <div className="border-2 border-dashed border-white/10 hover:border-orange-500/30 rounded-2xl p-4 text-center space-y-3 transition-colors relative">
-                  <span className="block text-xs font-bold text-white/60 uppercase">Upload Animal Video (Required)</span>
+                  <span className="block text-xs font-bold text-white/60 uppercase">{t("user.uploadVideo")}</span>
                   <div className="flex items-center justify-center gap-3">
                     <Video className="w-8 h-8 text-orange-400" />
                     <input
@@ -582,7 +592,7 @@ export default function UserDashboard() {
                       className="text-xs text-white/40 w-full"
                     />
                   </div>
-                  {videoUploading && <div className="text-[10px] text-orange-400 font-bold">Uploading video file...</div>}
+                  {videoUploading && <div className="text-[10px] text-orange-400 font-bold">Uploading video...</div>}
                   {videoPreview && (
                     <video
                       src={videoPreview}
@@ -599,7 +609,7 @@ export default function UserDashboard() {
               {/* Case Description */}
               <div>
                 <div className="flex justify-between items-center mb-1.5">
-                  <label className="block text-xs font-bold text-white/60 uppercase">Incident Description</label>
+                  <label className="block text-xs font-bold text-white/60 uppercase">{t("user.description")}</label>
                   <span className={`text-[10px] font-bold ${formData.description.length >= 20 ? "text-emerald-400" : "text-amber-400"}`}>
                     {formData.description.length} characters (Min 20)
                   </span>
@@ -609,7 +619,7 @@ export default function UserDashboard() {
                   rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Provide precise details of the injury and any landmarks nearby to assist our medical ambulance team..."
+                  placeholder={t("user.placeholderDesc")}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white leading-relaxed"
                 />
               </div>
@@ -619,7 +629,7 @@ export default function UserDashboard() {
                 disabled={isSubmittingTicket || photoUploading || videoUploading}
                 className="w-full py-4 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] disabled:bg-orange-500/50 text-white font-black rounded-xl shadow-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 cursor-pointer"
               >
-                {isSubmittingTicket ? "Registering Case..." : "Submit Incident Report (Dispatch Team)"}
+                {isSubmittingTicket ? t("home.submitting") : t("user.submitTicket")}
               </button>
             </form>
           </div>
