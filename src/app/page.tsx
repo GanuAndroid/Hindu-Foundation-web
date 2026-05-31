@@ -6,7 +6,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { Heart, ShieldCheck, Ambulance, HeartHandshake, CheckCircle2, QrCode, Sparkles, Award, Phone } from "lucide-react";
 
 export default function Home() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [stats, setStats] = useState({
     rescued: 12450,
     teams: 24,
@@ -120,7 +120,7 @@ export default function Home() {
 
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-4">
             <Link
-              href="#donate"
+              href="/donate"
               className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-white font-extrabold rounded-2xl shadow-xl shadow-orange-500/20 hover:scale-105 transition-transform duration-300 flex items-center justify-center gap-2"
             >
               <Heart className="w-5 h-5 fill-current" />
@@ -242,23 +242,27 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               {/* UPI ID card */}
-              <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl space-y-3">
-                <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">{t("home.methodA")}</span>
-                <p className="text-xs text-white/60">{t("home.methodADesc")}</p>
-                <div
-                  className="bg-white/5 p-3 rounded-lg border border-orange-500/30 text-sm font-black text-orange-300 text-center select-all cursor-pointer hover:bg-orange-500/10 transition-colors"
-                  onClick={() => { navigator.clipboard.writeText('8447816192@kotak'); }}
-                  title="Click to copy UPI ID"
-                >
-                  8447816192@kotak
+              <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl space-y-3 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">{t("home.methodA")}</span>
+                  <p className="text-xs text-white/60">{t("home.methodADesc")}</p>
                 </div>
-                <p className="text-[10px] text-white/30 text-center">Tap to copy • Powered by Kotak Mahindra Bank</p>
+                <div className="space-y-2">
+                  <div
+                    className="bg-white/5 p-3 rounded-lg border border-orange-500/30 text-sm font-black text-orange-300 text-center select-all cursor-pointer hover:bg-orange-500/10 transition-colors"
+                    onClick={() => { navigator.clipboard.writeText('8447816192@kotak'); }}
+                    title="Click to copy UPI ID"
+                  >
+                    8447816192@kotak
+                  </div>
+                  <p className="text-[10px] text-white/30 text-center">Tap to copy • Powered by Kotak Mahindra Bank</p>
+                </div>
               </div>
 
               {/* QR Code Card */}
-              <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl flex flex-col items-center justify-center text-center space-y-3">
+              <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl flex flex-col items-center justify-between text-center space-y-3">
                 <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">{t("home.methodB")}</span>
                 <div className="bg-white p-2 rounded-xl shadow-lg">
                   <img
@@ -267,8 +271,32 @@ export default function Home() {
                     className="w-28 h-28 object-contain rounded-lg"
                   />
                 </div>
-                <span className="text-[9px] text-white/40">{t("home.methodBDesc")}</span>
-                <span className="text-[9px] font-bold text-orange-400/70">8447816192@kotak</span>
+                <div className="space-y-1">
+                  <span className="block text-[9px] text-white/40">{t("home.methodBDesc")}</span>
+                  <span className="block text-[9px] font-bold text-orange-400/70">8447816192@kotak</span>
+                </div>
+              </div>
+
+              {/* Crypto USDT Card */}
+              <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl flex flex-col items-center justify-between text-center space-y-3">
+                <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">{language === "hi" ? "विधि C: क्रिप्टो दान (USDT)" : "Method C: Crypto (USDT)"}</span>
+                <div className="bg-white p-2 rounded-xl shadow-lg">
+                  <img
+                    src="/crypto-qr.png"
+                    alt="Crypto USDT TRC20 QR Code"
+                    className="w-28 h-28 object-contain rounded-lg"
+                  />
+                </div>
+                <div className="space-y-1 w-full">
+                  <span className="block text-[9px] text-white/40">Network: Tron (TRC20)</span>
+                  <div
+                    className="bg-white/5 p-2 rounded-lg border border-orange-500/30 text-[10px] font-black text-orange-300 text-center select-all cursor-pointer hover:bg-orange-500/10 transition-colors w-full break-all font-mono"
+                    onClick={() => { navigator.clipboard.writeText('TKhmUEKk2h23MzQMk5e8LvLocdDHu4zy6J'); }}
+                    title="Click to copy Wallet Address"
+                  >
+                    TKhmUEKk2h23MzQM...
+                  </div>
+                </div>
               </div>
             </div>
           </div>
