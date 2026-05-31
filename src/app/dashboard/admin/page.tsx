@@ -343,8 +343,8 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* GRAPH CHART SECTION */}
-      <AnalyticsCharts />
+      {/* GRAPH CHART SECTION (Hidden for now, can be re-enabled in the future) */}
+      {/* <AnalyticsCharts /> */}
 
       {/* RESCUE TEAMS CRUD PANEL */}
       <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6">
