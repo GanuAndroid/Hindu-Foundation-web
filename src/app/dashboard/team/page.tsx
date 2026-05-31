@@ -602,8 +602,8 @@ export default function RescueTeamDashboard() {
 
       {/* REVERT PENDING MODAL */}
       {showPendingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-slate-900 border border-white/20 max-w-md w-full rounded-3xl p-6 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex justify-center items-start md:items-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in">
+          <div className="bg-slate-900 border border-white/20 max-w-md w-full rounded-3xl p-6 shadow-2xl relative my-4 md:my-8">
             <h3 className="text-lg font-black text-white mb-4 border-b border-white/5 pb-3">{t("team.markPending")}</h3>
             
             <form onSubmit={handleMarkPendingSubmit} className="space-y-4">
@@ -659,8 +659,8 @@ export default function RescueTeamDashboard() {
 
       {/* CLOSE RESCUE MISSION MODAL */}
       {showCloseModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-slate-900 border border-white/20 max-w-lg w-full rounded-3xl p-6 shadow-2xl relative my-8">
+        <div className="fixed inset-0 z-50 flex justify-center items-start md:items-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in">
+          <div className="bg-slate-900 border border-white/20 max-w-lg w-full rounded-3xl p-6 shadow-2xl relative my-4 md:my-8">
             <h3 className="text-lg font-black text-white mb-4 border-b border-white/5 pb-3">{t("team.closeTicket")}</h3>
 
             <form onSubmit={handleCloseTicketSubmit} className="space-y-4">

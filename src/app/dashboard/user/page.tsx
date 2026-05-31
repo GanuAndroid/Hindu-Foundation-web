@@ -497,8 +497,8 @@ export default function UserDashboard() {
 
       {/* CREATE RESCUE TICKET MODAL */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-slate-900 border border-white/20 max-w-2xl w-full rounded-3xl p-6 shadow-2xl relative my-8">
+        <div className="fixed inset-0 z-50 flex justify-center items-start md:items-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in">
+          <div className="bg-slate-900 border border-white/20 max-w-2xl w-full rounded-3xl p-6 shadow-2xl relative my-4 md:my-8">
             <button
               onClick={() => setShowCreateModal(false)}
               className="absolute top-5 right-5 text-white/40 hover:text-white"
