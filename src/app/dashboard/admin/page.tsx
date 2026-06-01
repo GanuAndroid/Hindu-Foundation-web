@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import AnalyticsCharts from "@/components/AnalyticsCharts";
+import AnalyticsCharts, { AnimalCategoryReports, DonationsLedgerChart } from "@/components/AnalyticsCharts";
 import {
   Heart,
   Ambulance,
@@ -343,93 +343,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* GRAPH CHART SECTION (Hidden for now, can be re-enabled in the future) */}
-      {/* <AnalyticsCharts /> */}
-
-      {/* RESCUE TEAMS CRUD PANEL */}
-      <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6">
-        <div className="flex justify-between items-center border-b border-white/5 pb-4">
-          <h3 className="font-extrabold text-lg flex items-center gap-2">
-            <Users className="w-5 h-5 text-orange-400" />
-            {t("admin.teamManagementTitle")}
-          </h3>
-          <button
-            onClick={() => {
-              setEditingTeam(null);
-              setTeamForm({ name: "", mobile: "", city: "", state: "", email: "", status: "Active" });
-              setShowTeamModal(true);
-            }}
-            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-white text-xs font-bold rounded-xl"
-          >
-            <Plus className="w-4 h-4" />
-            {t("admin.createTeamBtn")}
-          </button>
-        </div>
-
-        {isLoading ? (
-          <div className="text-center py-10 text-xs text-white/40">{t("admin.loadingTeams")}</div>
-        ) : teams.length === 0 ? (
-          <div className="text-center py-10 text-xs text-white/40">{t("admin.noTeams")}</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-white/10 text-white/50 uppercase tracking-widest font-black text-[9px]">
-                  <th className="py-3 px-4">{t("admin.teamName")}</th>
-                  <th className="py-3 px-4">{t("admin.mobileNumber")}</th>
-                  <th className="py-3 px-4">{t("admin.locality")}</th>
-                  <th className="py-3 px-4">{t("admin.email")}</th>
-                  <th className="py-3 px-4">{t("admin.status")}</th>
-                  <th className="py-3 px-4 text-right">{t("team.actions")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {teams.map((team) => (
-                  <tr key={team.id} className="hover:bg-white/[0.01]">
-                    <td className="py-3 px-4 font-extrabold text-white">{team.name}</td>
-                    <td className="py-3 px-4 font-mono text-white/80">{team.mobile}</td>
-                    <td className="py-3 px-4 text-white/70">{team.city}, {team.state}</td>
-                    <td className="py-3 px-4 text-white/60">{team.email}</td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                        team.status === "Active" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
-                      }`}>
-                        {team.status === "Active" ? t("admin.active") : t("admin.disabled")}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right space-x-2">
-                      <button
-                        onClick={() => handleToggleTeamStatus(team)}
-                        title={team.status === "Active" ? t("admin.disableTeam") : t("admin.activateTeam")}
-                        className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-white"
-                      >
-                        <Power className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditingTeam(team);
-                          setTeamForm({ name: team.name, mobile: team.mobile, city: team.city, state: team.state, email: team.email, status: team.status });
-                          setShowTeamModal(true);
-                        }}
-                        className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-orange-400"
-                      >
-                        <Edit className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteTeam(team.id)}
-                        className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-red-400"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
+      {/* 1) DISPATCH OPERATIONS TERMINAL */}
       {/* TICKET DISPATCH & ASSIGNMENT PANEL */}
       <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
@@ -544,6 +458,92 @@ export default function AdminDashboard() {
         )}
       </div>
 
+      {/* 2) RESCUE TEAM MANAGEMENT */}
+      {/* RESCUE TEAMS CRUD PANEL */}
+      <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6">
+        <div className="flex justify-between items-center border-b border-white/5 pb-4">
+          <h3 className="font-extrabold text-lg flex items-center gap-2">
+            <Users className="w-5 h-5 text-orange-400" />
+            {t("admin.teamManagementTitle")}
+          </h3>
+          <button
+            onClick={() => {
+              setEditingTeam(null);
+              setTeamForm({ name: "", mobile: "", city: "", state: "", email: "", status: "Active" });
+              setShowTeamModal(true);
+            }}
+            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-white text-xs font-bold rounded-xl"
+          >
+            <Plus className="w-4 h-4" />
+            {t("admin.createTeamBtn")}
+          </button>
+        </div>
+
+        {isLoading ? (
+          <div className="text-center py-10 text-xs text-white/40">{t("admin.loadingTeams")}</div>
+        ) : teams.length === 0 ? (
+          <div className="text-center py-10 text-xs text-white/40">{t("admin.noTeams")}</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-white/10 text-white/50 uppercase tracking-widest font-black text-[9px]">
+                  <th className="py-3 px-4">{t("admin.teamName")}</th>
+                  <th className="py-3 px-4">{t("admin.mobileNumber")}</th>
+                  <th className="py-3 px-4">{t("admin.locality")}</th>
+                  <th className="py-3 px-4">{t("admin.email")}</th>
+                  <th className="py-3 px-4">{t("admin.status")}</th>
+                  <th className="py-3 px-4 text-right">{t("team.actions")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {teams.map((team) => (
+                  <tr key={team.id} className="hover:bg-white/[0.01]">
+                    <td className="py-3 px-4 font-extrabold text-white">{team.name}</td>
+                    <td className="py-3 px-4 font-mono text-white/80">{team.mobile}</td>
+                    <td className="py-3 px-4 text-white/70">{team.city}, {team.state}</td>
+                    <td className="py-3 px-4 text-white/60">{team.email}</td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                        team.status === "Active" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
+                      }`}>
+                        {team.status === "Active" ? t("admin.active") : t("admin.disabled")}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-right space-x-2">
+                      <button
+                        onClick={() => handleToggleTeamStatus(team)}
+                        title={team.status === "Active" ? t("admin.disableTeam") : t("admin.activateTeam")}
+                        className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-white"
+                      >
+                        <Power className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingTeam(team);
+                          setTeamForm({ name: team.name, mobile: team.mobile, city: team.city, state: team.state, email: team.email, status: team.status });
+                          setShowTeamModal(true);
+                        }}
+                        className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-orange-400"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTeam(team.id)}
+                        className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-red-400"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* 3) DONATIONS GENERAL LEDGER */}
       {/* DONATION LEDGER MANAGEMENT */}
       <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6">
         <div className="flex justify-between items-center border-b border-white/5 pb-4">
@@ -670,6 +670,12 @@ export default function AdminDashboard() {
           </div>
         )}
       </div>
+
+      {/* 4) ANIMAL CATEGORY REPORTS */}
+      <AnimalCategoryReports />
+
+      {/* 5) DONATIONS LEDGER CHART */}
+      <DonationsLedgerChart />
 
       {/* RESCUE TEAM CRUD MODAL */}
       {showTeamModal && (
