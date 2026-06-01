@@ -21,7 +21,8 @@ import {
   Download,
   AlertCircle,
   X,
-  ShieldCheck
+  ShieldCheck,
+  MapPin
 } from "lucide-react";
 import { Ticket, RescueTeam, Donation } from "@/lib/types";
 
@@ -419,7 +420,18 @@ export default function AdminDashboard() {
                     <td className="py-3 px-4 font-extrabold text-white/95">
                       {tItem.animalType === "Other" ? tItem.customAnimalType : getAnimalTypeTranslation(tItem.animalType)}
                     </td>
-                    <td className="py-3 px-4 text-white/70 font-mono">lat: {tItem.latitude}, lng: {tItem.longitude}</td>
+                    <td className="py-3 px-4 text-white/70">
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${tItem.latitude},${tItem.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-orange-500/20 border border-white/10 hover:border-orange-500/30 rounded-lg text-orange-400 font-extrabold transition-all text-xs group cursor-pointer"
+                        title={language === "hi" ? "गूगल मैप्स पर देखें" : "View directions on Google Maps"}
+                      >
+                        <MapPin className="w-3.5 h-3.5 group-hover:animate-bounce" />
+                        <span>{language === "hi" ? "दिशा-निर्देश" : "Directions"}</span>
+                      </a>
+                    </td>
                     <td className="py-3 px-4 font-extrabold text-orange-400">
                       {tItem.assignedRescueTeamName || t("admin.unassignedDispatch")}
                     </td>
