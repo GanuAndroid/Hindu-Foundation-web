@@ -487,7 +487,17 @@ export const dbService = {
         writeLocalJsonDb(db);
       }
 
-      return [...tickets].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const statusPriority: Record<string, number> = {
+        Pending: 1,
+        Accepted: 2,
+        Closed: 3,
+      };
+      return [...tickets].sort((a: any, b: any) => {
+        const pA = statusPriority[a.status] || 99;
+        const pB = statusPriority[b.status] || 99;
+        if (pA !== pB) return pA - pB;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
     }
 
     const now = new Date();
@@ -521,7 +531,18 @@ export const dbService = {
     }
 
     const res = await pool.query("SELECT * FROM tickets ORDER BY created_at DESC");
-    return res.rows.map(mapTicket);
+    const tickets = res.rows.map(mapTicket);
+    const statusPriority: Record<string, number> = {
+      Pending: 1,
+      Accepted: 2,
+      Closed: 3,
+    };
+    return tickets.sort((a, b) => {
+      const pA = statusPriority[a.status] || 99;
+      const pB = statusPriority[b.status] || 99;
+      if (pA !== pB) return pA - pB;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   },
 
   async getTicketById(id: string): Promise<Ticket | undefined> {

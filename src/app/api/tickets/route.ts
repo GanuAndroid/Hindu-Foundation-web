@@ -22,8 +22,18 @@ export async function GET(req: NextRequest) {
       tickets = tickets.filter((t) => t.status === status);
     }
 
-    // Sort by newest first
-    tickets.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Sort sequence: Pending first, then Accepted, then Closed. Within status, sort by newest first.
+    const statusPriority: Record<string, number> = {
+      Pending: 1,
+      Accepted: 2,
+      Closed: 3,
+    };
+    tickets.sort((a, b) => {
+      const pA = statusPriority[a.status] || 99;
+      const pB = statusPriority[b.status] || 99;
+      if (pA !== pB) return pA - pB;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
     return NextResponse.json(tickets);
   } catch (error: any) {
