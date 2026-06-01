@@ -4,10 +4,10 @@ import { dbService } from "@/lib/db";
 // PUT /api/donations/[id] - Update donation details/status (Admins only)
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const { status, amount } = body;
 

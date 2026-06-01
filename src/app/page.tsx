@@ -356,8 +356,8 @@ export default function Home() {
 
       {/* RAZORPAY MODAL SIMULATION */}
       {showRazorpayModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-slate-900 border border-white/20 max-w-md w-full rounded-3xl p-6 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex justify-center items-start bg-black/80 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in">
+          <div className="bg-slate-900 border border-white/20 max-w-md w-full rounded-3xl p-6 shadow-2xl relative mx-auto my-auto">
             <div className="flex justify-between items-center pb-4 border-b border-white/10 mb-6">
               <div className="flex items-center gap-2">
                 <div className="bg-blue-600 p-1.5 rounded-lg text-white">

@@ -19,7 +19,9 @@ import {
   FolderMinus,
   Sparkles,
   Camera,
-  Info
+  Info,
+  X,
+  Video
 } from "lucide-react";
 import { Ticket } from "@/lib/types";
 
@@ -54,6 +56,10 @@ export default function RescueTeamDashboard() {
 
   const [closePhotoPreview, setClosePhotoPreview] = useState("");
   const [photoUploading, setPhotoUploading] = useState(false);
+
+  // Premium media lightbox states
+  const [activeLightbox, setActiveLightbox] = useState<{ url: string; type: "image" | "video" } | null>(null);
+  const [lightboxZoom, setLightboxZoom] = useState(1);
 
   // Auto-pending countdown visual simulator state
   const [countdownStr, setCountdownStr] = useState("03:00:00");
@@ -382,9 +388,9 @@ export default function RescueTeamDashboard() {
       </div>
 
       {/* TICKET LIST AND CASE VIEW DETAIL */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="space-y-4">
         
-        {/* Ticket List (Left Side) */}
+        {/* Ticket List (Full Width) */}
         <div className="space-y-4">
           <h3 className="font-extrabold text-lg flex items-center gap-2">
             <Filter className="w-5 h-5 text-orange-400" />
@@ -398,7 +404,7 @@ export default function RescueTeamDashboard() {
               No rescue tickets exist in this filter category.
             </div>
           ) : (
-            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+            <div className="space-y-3">
               {filteredTickets.map((tItem) => (
                 <div
                   key={tItem.id}
@@ -441,169 +447,12 @@ export default function RescueTeamDashboard() {
             </div>
           )}
         </div>
-
-        {/* Action Detail View Panel (Right Side) */}
-        <div className="lg:col-span-2 space-y-4">
-          <h3 className="font-extrabold text-lg flex items-center gap-2">
-            <CheckSquare className="w-5 h-5 text-orange-400" />
-            {t("team.actions")}
-          </h3>
-
-          {activeTicket ? (
-            <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6 animate-fade-in relative overflow-hidden">
-              
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
-                <div>
-                  <h3 className="font-black text-lg text-white flex items-center gap-2">
-                    {activeTicket.id}
-                    <span className="text-xs text-white/50">({getAnimalTypeTranslation(activeTicket.animalType)})</span>
-                  </h3>
-                  <div className="text-[10px] text-white/40 mt-0.5">{t("team.reportedBy")}: Citizen Reporter | Case ID: {activeTicket.eventId || "112"}</div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${
-                      activeTicket.status === "Closed"
-                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                        : activeTicket.status === "Accepted"
-                        ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                        : "bg-amber-500/10 border-amber-500/20 text-amber-400"
-                    }`}
-                  >
-                    {getStatusTranslation(activeTicket.status)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Media display */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">{t("user.uploadPhoto")}</span>
-                  <img
-                    src={activeTicket.imageUrl}
-                    className="w-full h-44 object-cover rounded-xl border border-white/5"
-                    alt="Animal photo"
-                  />
-                </div>
-                <div>
-                  <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">{t("user.uploadVideo")}</span>
-                  <video
-                    src={activeTicket.videoUrl}
-                    controls
-                    className="w-full h-44 object-cover rounded-xl border border-white/5 bg-black"
-                  />
-                </div>
-              </div>
-
-              {/* Case GPS Selector Map */}
-              <MapSelector onLocationSelect={() => {}} initialLat={activeTicket.latitude} initialLng={activeTicket.longitude} readonly={true} />
-
-              {/* Description */}
-              <div className="space-y-1">
-                <span className="block text-[10px] uppercase font-bold text-white/40">{t("user.description")}</span>
-                <p className="bg-white/[0.01] border border-white/5 p-4 rounded-xl text-xs text-white/80 leading-relaxed font-semibold italic">
-                  "{activeTicket.description}"
-                </p>
-              </div>
-
-              {/* Auto Pending 3-hour timer */}
-              {activeTicket.status === "Accepted" && (
-                <div className="bg-orange-500/10 border border-orange-500/20 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                  <div className="flex gap-2.5 items-start">
-                    <AlertTriangle className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0 animate-bounce" />
-                    <div>
-                      <span className="block text-xs font-black text-white">Active 3-Hour Pending Rule</span>
-                      <span className="block text-[10px] text-white/60 mt-0.5 leading-relaxed">If no recovery close or update is recorded within 3 hours of acceptance, system automatically tags back to Pending list.</span>
-                    </div>
-                  </div>
-                  <div className="bg-slate-950 px-4 py-2 border border-orange-500/30 rounded-xl text-center">
-                    <span className="block text-[8px] font-bold text-white/40 uppercase tracking-widest">Time Remaining</span>
-                    <span className="font-mono text-orange-400 font-extrabold text-xs">{countdownStr}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* ACTION BUTTONS */}
-              <div className="flex flex-wrap gap-3 border-t border-white/5 pt-6">
-                {activeTicket.status === "Pending" && (
-                  <button
-                    onClick={handleAcceptRescue}
-                    disabled={isSubmittingAction}
-                    className="flex-1 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-black uppercase rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-blue-500/10 flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Ambulance className="w-4 h-4" />
-                    {t("team.acceptTicket")}
-                  </button>
-                )}
-
-                {activeTicket.status === "Accepted" && (
-                  <button
-                    onClick={() => setShowPendingModal(true)}
-                    className="px-5 py-4 border border-amber-500/20 bg-amber-500/5 text-amber-400 text-xs font-black uppercase rounded-2xl hover:bg-amber-500/10 transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Info className="w-4 h-4" />
-                    {t("team.markPending")}
-                  </button>
-                )}
-
-                {activeTicket.status === "Accepted" && (
-                  <button
-                    onClick={() => setShowCloseModal(true)}
-                    className="flex-1 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-black uppercase rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    {t("team.closeTicket")}
-                  </button>
-                )}
-
-                {activeTicket.status === "Closed" && (
-                  <div className="w-full bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-2xl space-y-3">
-                    <span className="text-[10px] uppercase font-bold text-emerald-400 block">{t("user.closeReason")}</span>
-                    <div className="grid grid-cols-2 gap-4 text-xs">
-                      <div>
-                        <span className="block text-[9px] text-white/40">{t("user.closeReason")}</span>
-                        <span className="font-extrabold text-white">{getClosureReasonTranslation(activeTicket.closureReason || "")}</span>
-                      </div>
-                      <div>
-                        <span className="block text-[9px] text-white/40">{t("team.reportedOn")}</span>
-                        <span className="font-extrabold text-white">
-                          {activeTicket.closedAt ? new Date(activeTicket.closedAt).toLocaleString() : "Unknown"}
-                        </span>
-                      </div>
-                      {activeTicket.closureDescription && (
-                        <div className="col-span-2">
-                          <span className="block text-[9px] text-white/40">{t("user.closeDesc")}</span>
-                          <span className="font-semibold text-white/80 block italic">"{activeTicket.closureDescription}"</span>
-                        </div>
-                      )}
-                      {activeTicket.closurePhotoUrl && (
-                        <div className="col-span-2">
-                          <span className="block text-[9px] text-white/40 mb-1">{t("user.closePhoto")}</span>
-                          <img
-                            src={activeTicket.closurePhotoUrl}
-                            className="w-full h-40 object-cover rounded-xl border border-white/5"
-                            alt="Final Proof"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="border border-white/5 bg-slate-900/40 p-16 text-center text-xs text-white/40 rounded-3xl">
-              Select an emergency rescue case from the filter list to view details and operate.
-            </div>
-          )}
-        </div>
       </div>
 
       {/* REVERT PENDING MODAL */}
       {showPendingModal && (
-        <div className="fixed inset-0 z-50 flex justify-center items-start md:items-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-slate-900 border border-white/20 max-w-md w-full rounded-3xl p-6 shadow-2xl relative my-4 md:my-8">
+        <div className="fixed inset-0 z-50 flex justify-center items-start bg-black/80 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in">
+          <div className="bg-slate-900 border border-white/20 max-w-md w-full rounded-3xl p-6 shadow-2xl relative mx-auto my-auto">
             <h3 className="text-lg font-black text-white mb-4 border-b border-white/5 pb-3">{t("team.markPending")}</h3>
             
             <form onSubmit={handleMarkPendingSubmit} className="space-y-4">
@@ -659,8 +508,8 @@ export default function RescueTeamDashboard() {
 
       {/* CLOSE RESCUE MISSION MODAL */}
       {showCloseModal && (
-        <div className="fixed inset-0 z-50 flex justify-center items-start md:items-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-slate-900 border border-white/20 max-w-lg w-full rounded-3xl p-6 shadow-2xl relative my-4 md:my-8">
+        <div className="fixed inset-0 z-50 flex justify-center items-start bg-black/80 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in">
+          <div className="bg-slate-900 border border-white/20 max-w-lg w-full rounded-3xl p-6 shadow-2xl relative mx-auto my-auto">
             <h3 className="text-lg font-black text-white mb-4 border-b border-white/5 pb-3">{t("team.closeTicket")}</h3>
 
             <form onSubmit={handleCloseTicketSubmit} className="space-y-4">
@@ -735,7 +584,284 @@ export default function RescueTeamDashboard() {
           </div>
         </div>
       )}
+      {/* TICKET DETAILS DIALOG MODAL */}
+      {activeTicket && (
+        <div className="fixed inset-0 z-50 flex justify-center items-start bg-black/85 backdrop-blur-sm p-4 overflow-y-auto pt-10 pb-10 animate-fade-in">
+          <div className="bg-slate-900 border border-white/20 max-w-4xl w-full rounded-3xl p-6 shadow-2xl relative mx-auto my-auto space-y-6 font-sans text-white">
+            
+            {/* Header control toolbar */}
+            <div className="flex justify-between items-start border-b border-white/5 pb-4">
+              <div>
+                <span className="text-[#F15A24] font-black text-[10px] uppercase tracking-widest block">{t("team.actions")}</span>
+                <h3 className="text-xl font-black mt-1 text-white flex items-center gap-2">
+                  {activeTicket.id}
+                  <span className="text-xs text-white/50">({getAnimalTypeTranslation(activeTicket.animalType)})</span>
+                </h3>
+                <span className="text-[10px] text-white/40 block mt-0.5">{t("team.reportedBy")}: Citizen Reporter | Case ID: {activeTicket.eventId || "112"}</span>
+              </div>
 
+              <div className="flex items-center gap-3">
+                <span
+                  className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${
+                    activeTicket.status === "Closed"
+                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                      : activeTicket.status === "Accepted"
+                      ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                      : "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                  }`}
+                >
+                  {getStatusTranslation(activeTicket.status)}
+                </span>
+                <button
+                  onClick={() => { setActiveTicket(null); setActiveHistory([]); }}
+                  className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-all cursor-pointer border border-white/5"
+                  title="Close Details Modal"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Media previews grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Photo Preview */}
+              <div>
+                <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">{t("user.uploadPhoto")}</span>
+                {activeTicket.imageUrl ? (
+                  <div
+                    onClick={() => { setActiveLightbox({ url: activeTicket.imageUrl, type: "image" }); setLightboxZoom(1); }}
+                    className="relative group rounded-xl overflow-hidden border border-white/5 cursor-zoom-in hover:border-orange-500/30 transition-all duration-300"
+                  >
+                    <img
+                      src={activeTicket.imageUrl}
+                      className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-500"
+                      alt="Incident photo"
+                    />
+                    <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="px-3 py-1.5 bg-slate-900/95 text-[10px] font-black uppercase tracking-widest text-orange-400 border border-orange-500/30 rounded-xl">Zoom Photo</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white/[0.01] border border-white/5 rounded-xl h-44 flex flex-col items-center justify-center text-center p-4 text-white/30 space-y-2">
+                    <FileImage className="w-8 h-8 opacity-50" />
+                    <span className="text-xs font-bold uppercase tracking-wider">No Image Uploaded</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Video Preview */}
+              <div>
+                <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">{t("user.uploadVideo")}</span>
+                {activeTicket.videoUrl ? (
+                  <div
+                    onClick={() => { setActiveLightbox({ url: activeTicket.videoUrl, type: "video" }); }}
+                    className="relative group rounded-xl overflow-hidden border border-white/5 cursor-pointer hover:border-orange-500/30 transition-all duration-300 bg-black"
+                  >
+                    <video
+                      src={activeTicket.videoUrl}
+                      className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-500 opacity-85"
+                    />
+                    <div className="absolute inset-0 bg-black/45 flex items-center justify-center group-hover:bg-black/25 transition-all">
+                      <span className="px-3.5 py-1.5 bg-slate-900/95 text-[10px] font-black uppercase tracking-widest text-orange-400 border border-orange-500/30 rounded-xl flex items-center gap-1.5">
+                        <Video className="w-4 h-4" /> Play Video
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white/[0.01] border border-white/5 rounded-xl h-44 flex flex-col items-center justify-center text-center p-4 text-white/30 space-y-2">
+                    <Video className="w-8 h-8 opacity-50" />
+                    <span className="text-xs font-bold uppercase tracking-wider">No Video Uploaded</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Google Map selector */}
+            <MapSelector onLocationSelect={() => {}} initialLat={activeTicket.latitude} initialLng={activeTicket.longitude} readonly={true} />
+
+            {/* Description quote card */}
+            <div className="space-y-1">
+              <span className="block text-[10px] uppercase font-bold text-white/40">{t("user.description")}</span>
+              <p className="bg-white/[0.01] border border-white/5 p-4 rounded-xl text-xs text-white/80 leading-relaxed font-semibold italic">
+                "{activeTicket.description}"
+              </p>
+            </div>
+
+            {/* 3-Hour Pending countdown rule banner */}
+            {activeTicket.status === "Accepted" && (
+              <div className="bg-orange-500/10 border border-orange-500/20 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+                <div className="flex gap-2.5 items-start">
+                  <AlertTriangle className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0 animate-bounce" />
+                  <div>
+                    <span className="block font-black text-white">Active 3-Hour Pending Rule</span>
+                    <span className="block text-[10px] text-white/60 mt-0.5 leading-relaxed">If no recovery close or update is recorded within 3 hours of acceptance, system automatically tags back to Pending list.</span>
+                  </div>
+                </div>
+                <div className="bg-slate-950 px-4 py-2 border border-orange-500/30 rounded-xl text-center">
+                  <span className="block text-[8px] font-bold text-white/40 uppercase tracking-widest">Time Remaining</span>
+                  <span className="font-mono text-orange-400 font-extrabold text-xs">{countdownStr}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Actions / Timeline details grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+              {/* Timeline audits timeline */}
+              <div className="space-y-3 text-xs">
+                <span className="text-[10px] uppercase font-bold text-white/40 block">Audit timeline logs</span>
+                <div className="relative border-l border-white/10 pl-4 ml-2 space-y-4 max-h-40 overflow-y-auto">
+                  {activeHistory.map((hist) => (
+                    <div key={hist.id} className="relative">
+                      <div className="absolute -left-[21px] top-1 w-2 h-2 rounded-full bg-orange-500 border border-slate-900" />
+                      <div className="font-black text-white/90 text-[11px]">{getStatusTranslation(hist.status)}</div>
+                      <p className="text-white/60 text-[10px] leading-relaxed mt-0.5">{hist.remarks}</p>
+                      <span className="text-[9px] text-white/40 block mt-0.5">
+                        {new Date(hist.createdAt).toLocaleString()} | By: {hist.updatedBy}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action buttons list */}
+              <div className="space-y-4">
+                <span className="text-[10px] uppercase font-bold text-white/40 block">Dispatch operations</span>
+                <div className="flex flex-col gap-2">
+                  {activeTicket.status === "Pending" && (
+                    <button
+                      onClick={handleAcceptRescue}
+                      disabled={isSubmittingAction}
+                      className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-black uppercase rounded-xl hover:scale-[1.01] active:scale-95 transition-all shadow-lg shadow-blue-500/10 flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Ambulance className="w-4 h-4" />
+                      {t("team.acceptTicket")}
+                    </button>
+                  )}
+
+                  {activeTicket.status === "Accepted" && (
+                    <button
+                      onClick={() => setShowPendingModal(true)}
+                      className="w-full py-3 border border-amber-500/20 bg-amber-500/5 text-amber-400 text-xs font-black uppercase rounded-xl hover:bg-amber-500/10 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Info className="w-4 h-4" />
+                      {t("team.markPending")}
+                    </button>
+                  )}
+
+                  {activeTicket.status === "Accepted" && (
+                    <button
+                      onClick={() => setShowCloseModal(true)}
+                      className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-black uppercase rounded-xl hover:scale-[1.01] active:scale-95 transition-all shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      {t("team.closeTicket")}
+                    </button>
+                  )}
+
+                  {activeTicket.status === "Closed" && (
+                    <div className="bg-emerald-500/5 border border-emerald-500/25 p-4 rounded-xl space-y-3 text-xs">
+                      <span className="text-[10px] uppercase font-bold text-emerald-400 block">{t("user.closeReason")}</span>
+                      <div className="grid grid-cols-2 gap-4 text-xs">
+                        <div>
+                          <span className="block text-[9px] text-white/40">{t("user.closeReason")}</span>
+                          <span className="font-extrabold text-white">{getClosureReasonTranslation(activeTicket.closureReason || "")}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[9px] text-white/40">{t("team.reportedOn")}</span>
+                          <span className="font-extrabold text-white">
+                            {activeTicket.closedAt ? new Date(activeTicket.closedAt).toLocaleString() : "Unknown"}
+                          </span>
+                        </div>
+                        {activeTicket.closureDescription && (
+                          <div className="col-span-2">
+                            <span className="block text-[9px] text-white/40">{t("user.closeDesc")}</span>
+                            <span className="font-semibold text-white/80 block italic">"{activeTicket.closureDescription}"</span>
+                          </div>
+                        )}
+                        {activeTicket.closurePhotoUrl && (
+                          <div className="col-span-2">
+                            <span className="block text-[9px] text-white/40 mb-1">{t("user.closePhoto")}</span>
+                            <div className="w-full max-w-sm rounded-xl overflow-hidden border border-white/5 group relative cursor-zoom-in"
+                                 onClick={() => setActiveLightbox({ url: activeTicket.closurePhotoUrl || "", type: "image" })}>
+                              <img
+                                src={activeTicket.closurePhotoUrl}
+                                className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-500"
+                                alt="Final Proof"
+                              />
+                              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <span className="px-2.5 py-1 bg-slate-900/90 text-[9px] font-black uppercase text-orange-400 border border-orange-500/20 rounded-lg">Zoom Proof</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* PREMIUM MEDIA LIGHTBOX MODAL */}
+      {activeLightbox && (
+        <div className="fixed inset-0 z-[100] flex flex-col justify-center items-center bg-black/95 backdrop-blur-md p-4 animate-fade-in font-sans">
+          {/* Top Controls Toolbar */}
+          <div className="absolute top-5 right-5 flex items-center gap-4 z-[110]">
+            {activeLightbox.type === "image" && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setLightboxZoom(prev => Math.max(1, prev - 0.5))}
+                  disabled={lightboxZoom <= 1}
+                  className="px-3.5 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-40 rounded-xl text-xs font-black text-white transition-all cursor-pointer border border-white/5"
+                >
+                  Zoom -
+                </button>
+                <button
+                  onClick={() => setLightboxZoom(prev => Math.min(3, prev + 0.5))}
+                  disabled={lightboxZoom >= 3}
+                  className="px-3.5 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-40 rounded-xl text-xs font-black text-white transition-all cursor-pointer border border-white/5"
+                >
+                  Zoom + ({lightboxZoom}x)
+                </button>
+              </div>
+            )}
+            <button
+              onClick={() => { setActiveLightbox(null); setLightboxZoom(1); }}
+              className="p-2.5 bg-white/10 hover:bg-white/20 rounded-full text-white/80 hover:text-white transition-all cursor-pointer border border-white/5"
+              title="Close Lightbox"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Core media container */}
+          <div className="max-w-4xl max-h-[80vh] w-full flex justify-center items-center overflow-auto rounded-3xl p-4">
+            {activeLightbox.type === "image" ? (
+              <img
+                src={activeLightbox.url}
+                alt="Animal High Res"
+                className="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl transition-transform duration-300 select-none"
+                style={{ transform: `scale(${lightboxZoom})` }}
+                onDoubleClick={() => setLightboxZoom(prev => prev > 1 ? 1 : 2)}
+                title="Double click to fast-zoom"
+              />
+            ) : (
+              <video
+                src={activeLightbox.url}
+                controls
+                autoPlay
+                className="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl bg-black border border-white/10"
+              />
+            )}
+          </div>
+          <p className="text-[10px] text-white/40 mt-3 font-semibold uppercase tracking-wider">
+            {activeLightbox.type === "image" ? "Double click image to fast zoom" : "Press Esc or click close button to exit"}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

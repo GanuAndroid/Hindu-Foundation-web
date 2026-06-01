@@ -1,10 +1,42 @@
 import { Pool } from "pg";
 import { User, RescueTeam, Ticket, TicketHistory, Donation, TicketStatus } from "./types";
+import fs from "fs";
+import path from "path";
+import dns from "dns";
 
-// Connect using DATABASE_URL env variable (or fallback to a local PostgreSQL)
+// Force Node to prefer IPv4 DNS resolution (resolves ETIMEDOUT connection hangs on macOS dual-stack hosts)
+if (dns && dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder("ipv4first");
+}
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || "postgresql://postgres:password@localhost:5432/hindu_foundation",
+  connectionTimeoutMillis: 5000, // Socket connection timeout after 5 seconds to prevent locking requests
 });
+
+const JSON_DB_PATH = path.join(process.cwd(), "database.json");
+export let useLocalJson = false;
+
+function readLocalJsonDb(): any {
+  try {
+    if (!fs.existsSync(JSON_DB_PATH)) {
+      return { users: [], rescueTeams: [], tickets: [], ticketHistories: [], donations: [] };
+    }
+    const data = fs.readFileSync(JSON_DB_PATH, "utf8");
+    return JSON.parse(data);
+  } catch (err) {
+    console.error("Failed to read local JSON database:", err);
+    return { users: [], rescueTeams: [], tickets: [], ticketHistories: [], donations: [] };
+  }
+}
+
+function writeLocalJsonDb(db: any): void {
+  try {
+    fs.writeFileSync(JSON_DB_PATH, JSON.stringify(db, null, 2), "utf8");
+  } catch (err) {
+    console.error("Failed to write to local JSON database:", err);
+  }
+}
 
 let initPromise: Promise<void> | null = null;
 
@@ -12,6 +44,11 @@ export async function ensureDbInit(): Promise<void> {
   if (!initPromise) {
     initPromise = (async () => {
       try {
+        console.log("Probing cloud PostgreSQL database connection...");
+        const client = await pool.connect();
+        client.release();
+        console.log("PostgreSQL connection succeeded! Using cloud database.");
+
         // 1. Create tables in proper constraint order
         await pool.query(`
           CREATE TABLE IF NOT EXISTS users (
@@ -184,9 +221,12 @@ export async function ensureDbInit(): Promise<void> {
           `);
         }
 
-      } catch (err) {
-        console.error("Database schema initialization failed:", err);
-        throw err;
+      } catch (err: any) {
+        console.warn(
+          "⚠️ PostgreSQL database connection failed/timed out. Falling back to offline local JSON database (database.json).",
+          "Error detail:", err.message
+        );
+        useLocalJson = true;
       }
     })();
   }
@@ -277,12 +317,20 @@ export const dbService = {
   // --- USERS ---
   async getUsers(): Promise<User[]> {
     await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      return db.users || [];
+    }
     const res = await pool.query("SELECT * FROM users ORDER BY created_at DESC");
     return res.rows.map(mapUser);
   },
 
   async findUserByMobile(mobile: string): Promise<User | undefined> {
     await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      return (db.users || []).find((u: any) => u.mobile === mobile);
+    }
     const res = await pool.query("SELECT * FROM users WHERE mobile = $1", [mobile]);
     if ((res.rowCount ?? 0) === 0) return undefined;
     return mapUser(res.rows[0]);
@@ -290,6 +338,22 @@ export const dbService = {
 
   async createUser(user: Omit<User, "id" | "createdAt">): Promise<User> {
     await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      const newId = `USR-${Math.floor(1000 + Math.random() * 9000)}`;
+      const now = new Date().toISOString();
+      const newUser: User = {
+        id: newId,
+        role: user.role,
+        mobile: user.mobile,
+        name: user.name,
+        createdAt: now,
+      };
+      db.users = db.users || [];
+      db.users.push(newUser);
+      writeLocalJsonDb(db);
+      return newUser;
+    }
     const newId = `USR-${Math.floor(1000 + Math.random() * 9000)}`;
     const now = new Date();
     const res = await pool.query(
@@ -302,12 +366,35 @@ export const dbService = {
   // --- RESCUE TEAMS ---
   async getRescueTeams(): Promise<RescueTeam[]> {
     await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      return db.rescueTeams || [];
+    }
     const res = await pool.query("SELECT * FROM rescue_teams ORDER BY created_at DESC");
     return res.rows.map(mapRescueTeam);
   },
 
   async createRescueTeam(team: Omit<RescueTeam, "id" | "createdAt">): Promise<RescueTeam> {
     await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      const newId = `TEAM-${Math.floor(100 + Math.random() * 900)}`;
+      const now = new Date().toISOString();
+      const newTeam: RescueTeam = {
+        id: newId,
+        name: team.name,
+        mobile: team.mobile,
+        city: team.city,
+        state: team.state,
+        email: team.email,
+        status: team.status || "Active",
+        createdAt: now,
+      };
+      db.rescueTeams = db.rescueTeams || [];
+      db.rescueTeams.push(newTeam);
+      writeLocalJsonDb(db);
+      return newTeam;
+    }
     const newId = `TEAM-${Math.floor(100 + Math.random() * 900)}`;
     const now = new Date();
     const res = await pool.query(
@@ -319,6 +406,15 @@ export const dbService = {
 
   async updateRescueTeam(id: string, updates: Partial<Omit<RescueTeam, "id" | "createdAt">>): Promise<RescueTeam | undefined> {
     await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      const idx = (db.rescueTeams || []).findIndex((t: any) => t.id === id);
+      if (idx === -1) return undefined;
+      const updated = { ...db.rescueTeams[idx], ...updates };
+      db.rescueTeams[idx] = updated;
+      writeLocalJsonDb(db);
+      return updated;
+    }
     const fields = Object.keys(updates);
     if (fields.length === 0) {
       const res = await pool.query("SELECT * FROM rescue_teams WHERE id = $1", [id]);
@@ -345,6 +441,13 @@ export const dbService = {
 
   async deleteRescueTeam(id: string): Promise<boolean> {
     await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      const initialLength = (db.rescueTeams || []).length;
+      db.rescueTeams = (db.rescueTeams || []).filter((t: any) => t.id !== id);
+      writeLocalJsonDb(db);
+      return db.rescueTeams.length < initialLength;
+    }
     const res = await pool.query("DELETE FROM rescue_teams WHERE id = $1", [id]);
     return (res.rowCount ?? 0) > 0;
   },
@@ -352,6 +455,41 @@ export const dbService = {
   // --- TICKETS ---
   async getTickets(): Promise<Ticket[]> {
     await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      const tickets = db.tickets || [];
+      const now = new Date();
+      const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+      let updated = false;
+
+      tickets.forEach((t: any) => {
+        if (t.status === "Accepted" && t.acceptedAt && new Date(t.acceptedAt) <= threeHoursAgo) {
+          t.status = "Pending";
+          t.pendingRemarks = "System Auto-Revert: No action taken within 3 hours.";
+          t.assignedRescueTeamId = undefined;
+          t.assignedRescueTeamName = undefined;
+          t.updatedAt = now.toISOString();
+
+          db.ticketHistories = db.ticketHistories || [];
+          db.ticketHistories.push({
+            id: `H-${Math.floor(10000 + Math.random() * 90000)}`,
+            ticketId: t.id,
+            status: "Pending",
+            remarks: "Auto-reverted to Pending: Rescue team failed to take action within 3 hours limit.",
+            updatedBy: "System Daemon",
+            createdAt: now.toISOString(),
+          });
+          updated = true;
+        }
+      });
+
+      if (updated) {
+        writeLocalJsonDb(db);
+      }
+
+      return [...tickets].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
     const now = new Date();
     const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
     
@@ -388,6 +526,10 @@ export const dbService = {
 
   async getTicketById(id: string): Promise<Ticket | undefined> {
     await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      return (db.tickets || []).find((t: any) => t.id === id);
+    }
     const res = await pool.query("SELECT * FROM tickets WHERE id = $1", [id]);
     if ((res.rowCount ?? 0) === 0) return undefined;
     return mapTicket(res.rows[0]);
@@ -395,6 +537,45 @@ export const dbService = {
 
   async createTicket(ticket: Omit<Ticket, "id" | "status" | "createdAt" | "updatedAt">): Promise<Ticket> {
     await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      const newId = `TKT-${Math.floor(1000 + Math.random() * 9000)}`;
+      const now = new Date().toISOString();
+      const newTicket: Ticket = {
+        id: newId,
+        eventId: ticket.eventId || "112",
+        animalType: ticket.animalType,
+        customAnimalType: ticket.customAnimalType || undefined,
+        description: ticket.description,
+        imageUrl: ticket.imageUrl,
+        videoUrl: ticket.videoUrl,
+        latitude: Number(ticket.latitude),
+        longitude: Number(ticket.longitude),
+        status: "Pending",
+        assignedRescueTeamId: ticket.assignedRescueTeamId || undefined,
+        assignedRescueTeamName: ticket.assignedRescueTeamName || undefined,
+        createdBy: ticket.createdBy || "Citizen Reporter",
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      db.tickets = db.tickets || [];
+      db.tickets.push(newTicket);
+
+      db.ticketHistories = db.ticketHistories || [];
+      db.ticketHistories.push({
+        id: `H-${Math.floor(10000 + Math.random() * 90000)}`,
+        ticketId: newId,
+        status: "Pending",
+        remarks: `Emergency Rescue case reported for ${ticket.animalType}. Event ID: 112.`,
+        updatedBy: ticket.createdBy || "Citizen Reporter",
+        createdAt: now,
+      });
+
+      writeLocalJsonDb(db);
+      return newTicket;
+    }
+
     const newId = `TKT-${Math.floor(1000 + Math.random() * 9000)}`;
     const now = new Date();
     
@@ -447,6 +628,44 @@ export const dbService = {
     additionalFields: Partial<Ticket> = {}
   ): Promise<Ticket | undefined> {
     await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      const idx = (db.tickets || []).findIndex((t: any) => t.id === id);
+      if (idx === -1) return undefined;
+      
+      const now = new Date().toISOString();
+      const ticket = db.tickets[idx];
+      
+      const updatedTicket = {
+        ...ticket,
+        status,
+        remarks,
+        updatedAt: now,
+        ...additionalFields,
+      };
+
+      if (status === "Accepted") {
+        updatedTicket.acceptedAt = now;
+      } else if (status === "Closed") {
+        updatedTicket.closedAt = now;
+      }
+
+      db.tickets[idx] = updatedTicket;
+
+      db.ticketHistories = db.ticketHistories || [];
+      db.ticketHistories.push({
+        id: `H-${Math.floor(10000 + Math.random() * 90000)}`,
+        ticketId: id,
+        status,
+        remarks,
+        updatedBy: updaterName,
+        createdAt: now,
+      });
+
+      writeLocalJsonDb(db);
+      return updatedTicket;
+    }
+
     const now = new Date();
     
     const originalRes = await pool.query("SELECT * FROM tickets WHERE id = $1", [id]);
@@ -499,6 +718,12 @@ export const dbService = {
 
   async getTicketHistory(ticketId: string): Promise<TicketHistory[]> {
     await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      return (db.ticketHistories || [])
+        .filter((h: any) => h.ticketId === ticketId)
+        .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    }
     const res = await pool.query(
       "SELECT * FROM ticket_histories WHERE ticket_id = $1 ORDER BY created_at ASC",
       [ticketId]
@@ -509,12 +734,40 @@ export const dbService = {
   // --- DONATIONS ---
   async getDonations(): Promise<Donation[]> {
     await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      return db.donations || [];
+    }
     const res = await pool.query("SELECT * FROM donations ORDER BY created_at DESC");
     return res.rows.map(mapDonation);
   },
 
   async createDonation(donation: Omit<Donation, "id" | "createdAt">): Promise<Donation> {
     await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      const newId = `DON-${Math.floor(2000 + Math.random() * 8000)}`;
+      const now = new Date().toISOString();
+      const newDonation: Donation = {
+        id: newId,
+        donorName: donation.donorName,
+        mobile: donation.mobile,
+        amount: Number(donation.amount),
+        paymentMode: donation.paymentMode,
+        transactionId: donation.transactionId,
+        createdAt: now,
+        email: donation.email || undefined,
+        purpose: donation.purpose || undefined,
+        screenshotUrl: donation.screenshotUrl || undefined,
+        status: donation.status || "Verified",
+      };
+
+      db.donations = db.donations || [];
+      db.donations.push(newDonation);
+      writeLocalJsonDb(db);
+      return newDonation;
+    }
+
     const newId = `DON-${Math.floor(2000 + Math.random() * 8000)}`;
     const now = new Date();
     const res = await pool.query(
@@ -538,6 +791,20 @@ export const dbService = {
 
   async updateDonationStatusAndAmount(id: string, status: string, amount?: number): Promise<Donation | undefined> {
     await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      const idx = (db.donations || []).findIndex((d: any) => d.id === id);
+      if (idx === -1) return undefined;
+      
+      const updated: any = { ...db.donations[idx], status };
+      if (amount !== undefined && amount !== null) {
+        updated.amount = Number(amount);
+      }
+      db.donations[idx] = updated;
+      writeLocalJsonDb(db);
+      return updated;
+    }
+
     let res;
     if (amount !== undefined && amount !== null) {
       res = await pool.query(

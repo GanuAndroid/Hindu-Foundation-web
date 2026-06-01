@@ -88,7 +88,7 @@
     "caseHistory": "My Reported Cases",
     "createTicket": "Create Rescue Ticket",
     "eventIdLabel": "Case ID (Police 112)",
-    "eventIdPlaceholder": "Enter the Case ID provided by the Police after calling 112",
+    "eventIdPlaceholder": "Enter Case ID (e.g. 112-2026-X)",
     "emptyEventIdError": "Please enter the Case ID (112) provided by the Police after calling 112.",
     "animalType": "Animal Type",
     "customAnimalType": "Specify Animal Type (If Other)",

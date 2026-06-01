@@ -16,7 +16,8 @@ import {
   ListFilter,
   Eye,
   X,
-  MapPin
+  MapPin,
+  Info
 } from "lucide-react";
 import { Ticket } from "@/lib/types";
 
@@ -36,6 +37,10 @@ export default function UserDashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Premium media lightbox states
+  const [activeLightbox, setActiveLightbox] = useState<{ url: string; type: "image" | "video" } | null>(null);
+  const [lightboxZoom, setLightboxZoom] = useState(1);
   
   // Media uploads helper
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -186,19 +191,27 @@ export default function UserDashboard() {
       return;
     }
     if (!formData.imageUrl) {
-      setFormError(t("user.validationError"));
-      return;
-    }
-    if (!formData.videoUrl) {
-      setFormError(t("user.validationError"));
+      setFormError(
+        language === "hi"
+          ? "कृपया कम से कम एक फ़ोटो प्रमाण अपलोड करें।"
+          : "Please upload at least one photo proof."
+      );
       return;
     }
     if (formData.description.trim().length < 20) {
-      setFormError(t("user.validationError"));
+      setFormError(
+        language === "hi"
+          ? "कृपया चोट/स्थिति का अधिक विवरण दें (कम से कम 20 अक्षर)।"
+          : "Please provide a more detailed description of the injury (minimum 20 characters)."
+      );
       return;
     }
     if (formData.animalType === "Other" && !formData.customAnimalType) {
-      setFormError(t("user.validationError"));
+      setFormError(
+        language === "hi"
+          ? "कृपया पशु का प्रकार निर्दिष्ट करें।"
+          : "Please specify the custom animal type."
+      );
       return;
     }
 
@@ -214,6 +227,7 @@ export default function UserDashboard() {
       });
 
       if (res.ok) {
+        const createdTicket = await res.json();
         setShowCreateModal(false);
         setFormData({
           eventId: "",
@@ -230,6 +244,19 @@ export default function UserDashboard() {
         setVideoFile(null);
         setPhotoPreview("");
         setVideoPreview("");
+        
+        // Auto-select the newly created ticket to display details, photo, video, and map instantly
+        setActiveTicket(createdTicket);
+        setTicketHistory([
+          {
+            id: `H-temp-${Date.now()}`,
+            ticketId: createdTicket.id,
+            status: "Pending",
+            remarks: `Emergency Rescue case reported for ${getAnimalTypeTranslation(createdTicket.animalType)}. Event ID: 112.`,
+            updatedBy: createdTicket.createdBy,
+            createdAt: createdTicket.createdAt,
+          }
+        ]);
         
         loadTickets();
       } else {
@@ -316,10 +343,10 @@ export default function UserDashboard() {
       </div>
 
       {/* TICKET LIST AND TRACKING DETAIL PANELS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="space-y-4">
         
-        {/* Ticket List (Left Side) */}
-        <div className="lg:col-span-2 space-y-4">
+        {/* Ticket List (Full Width) */}
+        <div className="space-y-4">
           <h3 className="font-extrabold text-lg flex items-center gap-2">
             <ListFilter className="w-5 h-5 text-orange-400" />
             {t("user.caseHistory")}
@@ -382,123 +409,12 @@ export default function UserDashboard() {
             </div>
           )}
         </div>
-
-        {/* Live Step Tracking Detail Pane (Right Side) */}
-        <div className="space-y-4">
-          <h3 className="font-extrabold text-lg flex items-center gap-2">
-            <Clock className="w-5 h-5 text-orange-400" />
-            {t("user.ticketStatus")}
-          </h3>
-
-          {activeTicket ? (
-            <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6 animate-fade-in">
-              <div className="flex justify-between items-start border-b border-white/5 pb-4">
-                <div>
-                  <h4 className="font-extrabold text-sm text-white">{activeTicket.id}</h4>
-                  <span className="text-[10px] text-white/40">{t("user.animalType")}: {getAnimalTypeTranslation(activeTicket.animalType)}</span>
-                </div>
-                <span
-                  className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${
-                    activeTicket.status === "Closed"
-                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                      : activeTicket.status === "Accepted"
-                      ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                      : "bg-amber-500/10 border-amber-500/20 text-amber-400"
-                  }`}
-                >
-                  {getStatusTranslation(activeTicket.status)}
-                </span>
-              </div>
-
-              {/* Photos & Videos Display */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">{t("user.uploadPhoto")}</span>
-                  <img
-                    src={activeTicket.imageUrl}
-                    className="w-full h-24 object-cover rounded-xl border border-white/5"
-                    alt="Animal"
-                  />
-                </div>
-                <div>
-                  <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">{t("user.uploadVideo")}</span>
-                  <video
-                    src={activeTicket.videoUrl}
-                    controls
-                    className="w-full h-24 object-cover rounded-xl border border-white/5 bg-black"
-                  />
-                </div>
-              </div>
-
-              {/* Assignment details */}
-              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-2">
-                <span className="text-[10px] uppercase font-bold text-orange-400">{t("user.assignedTeam")}</span>
-                {activeTicket.assignedRescueTeamName ? (
-                  <div>
-                    <div className="font-black text-white text-xs">{activeTicket.assignedRescueTeamName}</div>
-                    <div className="text-[10px] text-white/50 mt-0.5">Assigned time: {activeTicket.acceptedAt ? new Date(activeTicket.acceptedAt).toLocaleTimeString() : "Pending"}</div>
-                  </div>
-                ) : (
-                  <div className="text-xs text-white/40 font-semibold italic">{t("user.notAssigned")}</div>
-                )}
-              </div>
-
-              {/* Case History Audits timeline */}
-              <div className="space-y-4">
-                <span className="text-[10px] uppercase font-bold text-white/40 block">Audit Logs</span>
-                {isLoadingHistory ? (
-                  <div className="text-center text-[10px] text-white/40 py-4">Fetching logs...</div>
-                ) : (
-                  <div className="relative border-l border-white/5 pl-4 ml-2 space-y-4 text-xs">
-                    {ticketHistory.map((h) => (
-                      <div key={h.id} className="relative">
-                        <div className="absolute -left-[21px] top-1.5 w-2 h-2 rounded-full bg-orange-500 border border-slate-900" />
-                        <div className="font-extrabold text-white/80">{getStatusTranslation(h.status)}</div>
-                        <p className="text-white/60 mt-0.5 text-[11px] leading-relaxed">{h.remarks}</p>
-                        <span className="text-[9px] text-white/40 block mt-1">
-                          {new Date(h.createdAt).toLocaleString()} | By: {h.updatedBy}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Closure proof panel */}
-              {activeTicket.status === "Closed" && (
-                <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-2xl space-y-3">
-                  <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
-                    <CheckCircle className="w-4 h-4" />
-                    {t("user.closeReason")}: {activeTicket.closureReason}
-                  </div>
-                  {activeTicket.closureDescription && (
-                    <p className="text-[11px] text-white/70 italic leading-relaxed">"{activeTicket.closureDescription}"</p>
-                  )}
-                  {activeTicket.closurePhotoUrl && (
-                    <div>
-                      <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">{t("user.closePhoto")}</span>
-                      <img
-                        src={activeTicket.closurePhotoUrl}
-                        className="w-full h-32 object-cover rounded-xl border border-white/5"
-                        alt="Closure proof"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="border border-white/5 bg-slate-900/40 p-12 text-center text-xs text-white/40 rounded-3xl">
-              Select a ticket from the left to view detailed live progress tracking.
-            </div>
-          )}
-        </div>
       </div>
 
       {/* CREATE RESCUE TICKET MODAL */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex justify-center items-start md:items-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-slate-900 border border-white/20 max-w-2xl w-full rounded-3xl p-6 shadow-2xl relative my-4 md:my-8">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm p-4 pt-12 pb-12 flex justify-center items-start md:p-8 animate-fade-in">
+          <div className="bg-slate-900 border border-white/20 max-w-2xl w-full rounded-3xl p-6 shadow-2xl relative mx-auto my-auto">
             <button
               onClick={() => setShowCreateModal(false)}
               className="absolute top-5 right-5 text-white/40 hover:text-white"
@@ -521,7 +437,25 @@ export default function UserDashboard() {
             <form onSubmit={handleCreateTicketSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">{t("user.eventIdLabel")}</label>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <label className="block text-xs font-bold text-white/60 uppercase leading-none">
+                      {t("user.eventIdLabel")}
+                    </label>
+                    <div className="group relative cursor-help">
+                      <Info className="w-3.5 h-3.5 text-orange-400 hover:text-orange-300 transition-colors" />
+                      
+                      {/* Premium Floating Tooltip Box */}
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-slate-900 border border-white/10 p-3 rounded-xl shadow-2xl text-[10px] text-white/80 font-semibold normal-case leading-relaxed opacity-0 pointer-events-none group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-300 z-50">
+                        <div className="text-orange-400 font-extrabold mb-1 uppercase tracking-wider text-[9px]">
+                          {language === "hi" ? "केस आईडी निर्देश" : "Case ID Instructions"}
+                        </div>
+                        {language === "hi" 
+                          ? "बचाव टिकट दर्ज करने के लिए पुलिस (112) द्वारा प्रदान की गई केस आईडी दर्ज करना आवश्यक है। पहले पुलिस को कॉल करें!" 
+                          : "Call 112 first. The police will provide you with a case reference ID, which must be entered here to register a rescue ticket."}
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-[5px] border-transparent border-t-slate-900"></div>
+                      </div>
+                    </div>
+                  </div>
                   <input
                     type="text"
                     required
@@ -639,6 +573,236 @@ export default function UserDashboard() {
               </button>
             </form>
           </div>
+        </div>
+      )}
+      {/* TICKET DETAILS DIALOG MODAL */}
+      {activeTicket && (
+        <div className="fixed inset-0 z-50 flex justify-center items-start bg-black/85 backdrop-blur-sm p-4 overflow-y-auto pt-10 pb-10 animate-fade-in">
+          <div className="bg-slate-900 border border-white/20 max-w-4xl w-full rounded-3xl p-6 shadow-2xl relative mx-auto my-auto space-y-6 font-sans text-white">
+            
+            {/* Header control toolbar */}
+            <div className="flex justify-between items-start border-b border-white/5 pb-4">
+              <div>
+                <span className="text-[#F15A24] font-black text-[10px] uppercase tracking-widest block">Incident Rescue Details</span>
+                <h3 className="text-xl font-black mt-1 text-white flex items-center gap-2">
+                  {activeTicket.id}
+                  <span className="text-xs text-white/50">({getAnimalTypeTranslation(activeTicket.animalType)})</span>
+                </h3>
+                <span className="text-[10px] text-white/40 block mt-0.5">Reported On: {new Date(activeTicket.createdAt).toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span
+                  className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${
+                    activeTicket.status === "Closed"
+                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                      : activeTicket.status === "Accepted"
+                      ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                      : "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                  }`}
+                >
+                  {getStatusTranslation(activeTicket.status)}
+                </span>
+                <button
+                  onClick={() => { setActiveTicket(null); setTicketHistory([]); }}
+                  className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-all cursor-pointer border border-white/5"
+                  title="Close Details Modal"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Media previews grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Photo Preview */}
+              <div>
+                <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">{t("user.uploadPhoto")}</span>
+                {activeTicket.imageUrl ? (
+                  <div
+                    onClick={() => { setActiveLightbox({ url: activeTicket.imageUrl, type: "image" }); setLightboxZoom(1); }}
+                    className="relative group rounded-xl overflow-hidden border border-white/5 cursor-zoom-in hover:border-orange-500/30 transition-all duration-300"
+                  >
+                    <img
+                      src={activeTicket.imageUrl}
+                      className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-500"
+                      alt="Incident photo"
+                    />
+                    <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="px-3 py-1.5 bg-slate-900/95 text-[10px] font-black uppercase tracking-widest text-orange-400 border border-orange-500/30 rounded-xl">Zoom Photo</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white/[0.01] border border-white/5 rounded-xl h-44 flex flex-col items-center justify-center text-center p-4 text-white/30 space-y-2">
+                    <FileImage className="w-8 h-8 opacity-50" />
+                    <span className="text-xs font-bold uppercase tracking-wider">No Image Uploaded</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Video Preview */}
+              <div>
+                <span className="block text-[9px] uppercase font-bold text-white/40 mb-1">{t("user.uploadVideo")}</span>
+                {activeTicket.videoUrl ? (
+                  <div
+                    onClick={() => { setActiveLightbox({ url: activeTicket.videoUrl, type: "video" }); }}
+                    className="relative group rounded-xl overflow-hidden border border-white/5 cursor-pointer hover:border-orange-500/30 transition-all duration-300 bg-black"
+                  >
+                    <video
+                      src={activeTicket.videoUrl}
+                      className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-500 opacity-85"
+                    />
+                    <div className="absolute inset-0 bg-black/45 flex items-center justify-center group-hover:bg-black/25 transition-all">
+                      <span className="px-3.5 py-1.5 bg-slate-900/95 text-[10px] font-black uppercase tracking-widest text-orange-400 border border-orange-500/30 rounded-xl flex items-center gap-1.5">
+                        <Video className="w-4 h-4" /> Play Video
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white/[0.01] border border-white/5 rounded-xl h-44 flex flex-col items-center justify-center text-center p-4 text-white/30 space-y-2">
+                    <Video className="w-8 h-8 opacity-50" />
+                    <span className="text-xs font-bold uppercase tracking-wider">No Video Uploaded</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Description quote card */}
+            <div className="space-y-1">
+              <span className="block text-[10px] uppercase font-bold text-white/40">{t("user.description")}</span>
+              <p className="bg-white/[0.01] border border-white/5 p-4 rounded-xl text-xs text-white/80 leading-relaxed font-semibold italic">
+                "{activeTicket.description}"
+              </p>
+            </div>
+
+            {/* Location and address detail */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+              <div className="space-y-3">
+                <span className="block text-[10px] uppercase font-bold text-white/40">{t("user.currentLocation")}</span>
+                <MapSelector onLocationSelect={() => {}} initialLat={activeTicket.latitude} initialLng={activeTicket.longitude} readonly={true} />
+              </div>
+
+              <div className="space-y-4">
+                {/* Assignment detail block */}
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-2 text-xs">
+                  <span className="text-[10px] uppercase font-bold text-orange-400">{t("user.assignedTeam")}</span>
+                  {activeTicket.assignedRescueTeamName ? (
+                    <div>
+                      <div className="font-black text-white text-sm">{activeTicket.assignedRescueTeamName}</div>
+                      <div className="text-[10px] text-white/50 mt-1">Assigned On: {activeTicket.acceptedAt ? new Date(activeTicket.acceptedAt).toLocaleString() : "Pending"}</div>
+                    </div>
+                  ) : (
+                    <div className="font-semibold italic text-white/40">{t("user.notAssigned")}</div>
+                  )}
+                </div>
+
+                {/* Dynamic Timeline audit logs */}
+                <div className="space-y-3 text-xs">
+                  <span className="text-[10px] uppercase font-bold text-white/40 block">Audit timeline logs</span>
+                  {isLoadingHistory ? (
+                    <div className="text-center py-4 text-white/40 text-[10px]">Loading audit trail...</div>
+                  ) : (
+                    <div className="relative border-l border-white/10 pl-4 ml-2 space-y-4 max-h-40 overflow-y-auto">
+                      {ticketHistory.map((h) => (
+                        <div key={h.id} className="relative">
+                          <div className="absolute -left-[21px] top-1 w-2 h-2 rounded-full bg-orange-500 border border-slate-900" />
+                          <div className="font-black text-white/90 text-[11px]">{getStatusTranslation(h.status)}</div>
+                          <p className="text-white/60 text-[10px] leading-relaxed mt-0.5">{h.remarks}</p>
+                          <span className="text-[9px] text-white/40 block mt-0.5">
+                            {new Date(h.createdAt).toLocaleString()} | By: {h.updatedBy}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Closure proof panel */}
+            {activeTicket.status === "Closed" && (
+              <div className="bg-emerald-500/5 border border-emerald-500/25 p-4 rounded-2xl space-y-3 text-xs">
+                <div className="flex items-center gap-2 text-emerald-400 font-bold">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>{t("user.closeReason")}: {activeTicket.closureReason}</span>
+                </div>
+                {activeTicket.closureDescription && (
+                  <p className="text-white/70 italic">"{activeTicket.closureDescription}"</p>
+                )}
+                {activeTicket.closurePhotoUrl && (
+                  <div className="w-full max-w-sm rounded-xl overflow-hidden border border-white/5 group relative cursor-zoom-in"
+                       onClick={() => setActiveLightbox({ url: activeTicket.closurePhotoUrl || "", type: "image" })}>
+                    <img
+                      src={activeTicket.closurePhotoUrl}
+                      className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-500"
+                      alt="Closure proof photo"
+                    />
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="px-2.5 py-1 bg-slate-900/90 text-[9px] font-black uppercase text-orange-400 border border-orange-500/20 rounded-lg">Zoom Proof</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* PREMIUM MEDIA LIGHTBOX MODAL */}
+      {activeLightbox && (
+        <div className="fixed inset-0 z-[100] flex flex-col justify-center items-center bg-black/95 backdrop-blur-md p-4 animate-fade-in font-sans">
+          {/* Top Controls Toolbar */}
+          <div className="absolute top-5 right-5 flex items-center gap-4 z-[110]">
+            {activeLightbox.type === "image" && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setLightboxZoom(prev => Math.max(1, prev - 0.5))}
+                  disabled={lightboxZoom <= 1}
+                  className="px-3.5 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-40 rounded-xl text-xs font-black text-white transition-all cursor-pointer border border-white/5"
+                >
+                  Zoom -
+                </button>
+                <button
+                  onClick={() => setLightboxZoom(prev => Math.min(3, prev + 0.5))}
+                  disabled={lightboxZoom >= 3}
+                  className="px-3.5 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-40 rounded-xl text-xs font-black text-white transition-all cursor-pointer border border-white/5"
+                >
+                  Zoom + ({lightboxZoom}x)
+                </button>
+              </div>
+            )}
+            <button
+              onClick={() => { setActiveLightbox(null); setLightboxZoom(1); }}
+              className="p-2.5 bg-white/10 hover:bg-white/20 rounded-full text-white/80 hover:text-white transition-all cursor-pointer border border-white/5"
+              title="Close Lightbox"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Core media container */}
+          <div className="max-w-4xl max-h-[80vh] w-full flex justify-center items-center overflow-auto rounded-3xl p-4">
+            {activeLightbox.type === "image" ? (
+              <img
+                src={activeLightbox.url}
+                alt="Animal High Res"
+                className="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl transition-transform duration-300 select-none"
+                style={{ transform: `scale(${lightboxZoom})` }}
+                onDoubleClick={() => setLightboxZoom(prev => prev > 1 ? 1 : 2)}
+                title="Double click to fast-zoom"
+              />
+            ) : (
+              <video
+                src={activeLightbox.url}
+                controls
+                autoPlay
+                className="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl bg-black border border-white/10"
+              />
+            )}
+          </div>
+          <p className="text-[10px] text-white/40 mt-3 font-semibold uppercase tracking-wider">
+            {activeLightbox.type === "image" ? "Double click image to fast zoom" : "Press Esc or click close button to exit"}
+          </p>
         </div>
       )}
     </div>
