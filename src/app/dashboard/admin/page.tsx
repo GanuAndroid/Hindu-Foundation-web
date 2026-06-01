@@ -446,7 +446,7 @@ export default function AdminDashboard() {
                         {getStatusTranslation(tItem.status)}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-white/40">{new Date(tItem.createdAt).toLocaleDateString()}</td>
+                    <td className="py-3 px-4 text-white/40 font-mono">{new Date(tItem.createdAt).toLocaleString()}</td>
                     <td className="py-3 px-4 text-right">
                       {tItem.status !== "Closed" ? (
                         <button
