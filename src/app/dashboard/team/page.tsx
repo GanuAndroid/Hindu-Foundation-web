@@ -155,6 +155,7 @@ export default function RescueTeamDashboard() {
           updaterName: user.name,
           assignedRescueTeamId: "team-1",
           assignedRescueTeamName: user.name,
+          assignedRescueTeamMobile: user.mobile,
         }),
       });
 
@@ -210,41 +211,66 @@ export default function RescueTeamDashboard() {
   // CLOSE TICKET SUBMIT
   const handleCloseTicketSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeTicket || !user) return;
+    if (!activeTicket || !user) {
+      console.warn("[CLOSE RESCUE] Submit blocked: activeTicket or user is null", { activeTicket, user });
+      return;
+    }
+
+    console.log("[CLOSE RESCUE] Initiating form submit...", { closeForm });
 
     if (!closeForm.photoUrl) {
-      alert(t("team.validationError"));
+      alert(
+        language === "hi"
+          ? "कृपया समाधान का फ़ोटो प्रमाण अपलोड करें।"
+          : "Please upload a photo proof of resolution."
+      );
       return;
     }
     if (closeForm.reason === "Other" && (!closeForm.description || closeForm.description.trim().length === 0)) {
-      alert(t("team.validationError"));
+      alert(
+        language === "hi"
+          ? "कृपया समाधान का विवरण दर्ज करें।"
+          : "Please provide resolution details for the 'Other' reason."
+      );
       return;
     }
 
     setIsSubmittingAction(true);
     try {
+      const payload = {
+        action: "close",
+        updaterName: user.name,
+        closureReason: closeForm.reason,
+        closureDescription: closeForm.description,
+        closurePhotoUrl: closeForm.photoUrl,
+      };
+
+      console.log("[CLOSE RESCUE] Sending PUT request to backend...", { payload });
+
       const res = await fetch(`/api/tickets/${activeTicket.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "close",
-          updaterName: user.name,
-          closureReason: closeForm.reason,
-          closureDescription: closeForm.description,
-          closurePhotoUrl: closeForm.photoUrl,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
+        console.log("[CLOSE RESCUE] Ticket closed successfully!");
         setShowCloseModal(false);
         setCloseForm({ reason: "Treatment Completed", description: "", photoUrl: "" });
         setClosePhotoPreview("");
         loadTickets();
       } else {
-        alert("Failed to close rescue ticket");
+        const errData = await res.json().catch(() => ({}));
+        console.error("[CLOSE RESCUE] API returned error response:", { status: res.status, errData });
+        alert(
+          language === "hi"
+            ? `रेस्क्यू बंद करने में विफल: ${errData.error || "सिस्टम त्रुटि"}`
+            : `Failed to close rescue ticket: ${errData.error || "Unknown system error"}`
+        );
       }
     } catch (e) {
-      console.error(e);
+      console.error("[CLOSE RESCUE] Network/System error during submit:", e);
+      alert("System error communicating with server.");
     } finally {
       setIsSubmittingAction(false);
     }
@@ -254,6 +280,19 @@ export default function RescueTeamDashboard() {
   const handleClosePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Check size limit: 5MB max
+    const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_IMAGE_SIZE) {
+      alert(
+        language === "hi"
+          ? "फ़ोटो का आकार 5MB से अधिक नहीं होना चाहिए।"
+          : "Photo file size must not exceed 5MB."
+      );
+      e.target.value = "";
+      setClosePhotoPreview("");
+      return;
+    }
 
     setClosePhotoPreview(URL.createObjectURL(file));
     setPhotoUploading(true);
@@ -271,10 +310,23 @@ export default function RescueTeamDashboard() {
         const data = await res.json();
         setCloseForm(prev => ({ ...prev, photoUrl: data.url }));
       } else {
-        alert("Photo upload failed");
+        alert(
+          language === "hi"
+            ? "फ़ोटो अपलोड विफल रहा। कृपया 5MB से छोटी फ़ाइल का उपयोग करें।"
+            : "Photo upload failed. Please use a file smaller than 5MB."
+        );
+        e.target.value = "";
+        setClosePhotoPreview("");
       }
     } catch (err) {
       console.error(err);
+      alert(
+        language === "hi"
+          ? "फ़ोटो अपलोड में त्रुटि हुई। कृपया पुन: प्रयास करें।"
+          : "Error uploading photo. Please try again."
+      );
+      e.target.value = "";
+      setClosePhotoPreview("");
     } finally {
       setPhotoUploading(false);
     }
@@ -585,7 +637,7 @@ export default function RescueTeamDashboard() {
         </div>
       )}
       {/* TICKET DETAILS DIALOG MODAL */}
-      {activeTicket && (
+      {activeTicket && !showCloseModal && !showPendingModal && (
         <div className="fixed inset-0 z-50 flex justify-center items-start bg-black/85 backdrop-blur-sm p-4 overflow-y-auto pt-10 pb-10 animate-fade-in">
           <div className="bg-slate-900 border border-white/20 max-w-4xl w-full rounded-3xl p-6 shadow-2xl relative mx-auto my-auto space-y-6 font-sans text-white">
             

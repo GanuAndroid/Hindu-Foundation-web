@@ -694,9 +694,13 @@ export const dbService = {
     let argIndex = values.length + 1;
     for (const key of Object.keys(additionalFields)) {
       if (allowedFields.includes(key)) {
+        let val = (additionalFields as any)[key];
+        if (val === undefined) {
+          val = null;
+        }
         const colName = key.replace(/([A-Z])/g, "_$1").toLowerCase();
         setClauses.push(`${colName} = $${argIndex}`);
-        values.push((additionalFields as any)[key]);
+        values.push(val);
         argIndex++;
       }
     }

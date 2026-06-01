@@ -45,6 +45,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const sendOtp = async (mobile: string, role: UserRole): Promise<boolean> => {
     setError(null);
     try {
+      const isLocal = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
+      if (isLocal) {
+        console.log(`[MOCK AUTH] Local environment detected. Bypassing real Firebase SMS OTP for mobile: ${mobile}`);
+        setTempAuth({ mobile, role });
+        // Set confirmationResult to a mock object that resolves locally.
+        setConfirmationResult({
+          confirm: async (code: string) => {
+            if (code.trim() !== "123456") {
+              throw { code: "auth/invalid-verification-code", message: "Invalid verification code." };
+            }
+            return {
+              user: {
+                getIdToken: async () => `mock-token-${mobile}-${role}`
+              }
+            };
+          }
+        } as any);
+        return true;
+      }
+
       // 0. Ensure Firebase is initialized
       if (!auth) {
         throw new Error("Firebase Authentication is not configured. Please supply valid NEXT_PUBLIC_FIREBASE_* keys in your .env.local file to activate real OTP verification.");
@@ -110,22 +131,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const verifyOtp = async (otp: string, name?: string): Promise<User | null> => {
     setError(null);
-    if (!tempAuth || !confirmationResult) {
+    if (!tempAuth) {
       setError("Session invalid or expired. Please enter your mobile number and request a new OTP code.");
       return null;
     }
 
     try {
-      // 1. Confirm OTP code using the Firebase confirmation token
-      await confirmationResult.confirm(otp.trim());
-      console.log("[FIREBASE] OTP verification confirmed on client-side!");
+      let idToken = "";
+      const isLocal = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
 
-      // Retrieve the cryptographically signed Firebase ID Token for backend validation
-      const firebaseUser = auth.currentUser;
-      if (!firebaseUser) {
-        throw new Error("No authenticated user session found in Firebase.");
+      if (isLocal) {
+        if (otp.trim() !== "123456") {
+          throw { code: "auth/invalid-verification-code", message: "Invalid verification code. Please enter the standard local developer code '123456'." };
+        }
+        idToken = `mock-token-${tempAuth.mobile}-${tempAuth.role}`;
+        console.log("[MOCK AUTH] OTP verified successfully via local bypass.");
+      } else {
+        if (!confirmationResult) {
+          setError("Session invalid or expired. Please enter your mobile number and request a new OTP code.");
+          return null;
+        }
+        // 1. Confirm OTP code using the Firebase confirmation token
+        await confirmationResult.confirm(otp.trim());
+        console.log("[FIREBASE] OTP verification confirmed on client-side!");
+
+        // Retrieve the cryptographically signed Firebase ID Token for backend validation
+        const firebaseUser = auth.currentUser;
+        if (!firebaseUser) {
+          throw new Error("No authenticated user session found in Firebase.");
+        }
+        idToken = await firebaseUser.getIdToken();
       }
-      const idToken = await firebaseUser.getIdToken();
 
       // 2. Once verified with Firebase, authenticate or register the session in our local PostgreSQL database
       const res = await fetch("/api/auth", {

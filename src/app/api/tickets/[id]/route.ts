@@ -59,7 +59,24 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     let updatedTicket;
 
     if (action === "accept") {
-      if (!assignedRescueTeamId || !assignedRescueTeamName) {
+      let finalTeamId = assignedRescueTeamId;
+      let finalTeamName = assignedRescueTeamName;
+
+      const bodyMobile = body.assignedRescueTeamMobile;
+      if (bodyMobile) {
+        const teams = await dbService.getRescueTeams();
+        const foundTeam = teams.find(
+          (t) =>
+            t.mobile === bodyMobile ||
+            t.mobile.replace(/\D/g, "").slice(-10) === bodyMobile.replace(/\D/g, "").slice(-10)
+        );
+        if (foundTeam) {
+          finalTeamId = foundTeam.id;
+          finalTeamName = foundTeam.name;
+        }
+      }
+
+      if (!finalTeamId || !finalTeamName) {
         return NextResponse.json({ error: "Assigned Team details are required to Accept Rescue." }, { status: 400 });
       }
 
@@ -67,10 +84,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         id,
         "Accepted",
         updaterName,
-        `Rescue operation accepted by team: ${assignedRescueTeamName}.`,
+        `Rescue operation accepted by team: ${finalTeamName}.`,
         {
-          assignedRescueTeamId,
-          assignedRescueTeamName,
+          assignedRescueTeamId: finalTeamId,
+          assignedRescueTeamName: finalTeamName,
           pendingRemarks: undefined, // Clear any previous pending remarks
         }
       );

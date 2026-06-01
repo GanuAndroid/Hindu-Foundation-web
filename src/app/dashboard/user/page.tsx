@@ -115,6 +115,19 @@ export default function UserDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Check size limit: 5MB max
+    const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_IMAGE_SIZE) {
+      setFormError(
+        language === "hi"
+          ? "फ़ोटो का आकार 5MB से अधिक नहीं होना चाहिए।"
+          : "Photo file size must not exceed 5MB."
+      );
+      e.target.value = "";
+      return;
+    }
+
+    setFormError(null);
     setPhotoFile(file);
     setPhotoPreview(URL.createObjectURL(file));
     
@@ -146,6 +159,19 @@ export default function UserDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Check size limit: 25MB max
+    const MAX_VIDEO_SIZE = 25 * 1024 * 1024;
+    if (file.size > MAX_VIDEO_SIZE) {
+      setFormError(
+        language === "hi"
+          ? "वीडियो का आकार 25MB से अधिक नहीं होना चाहिए।"
+          : "Video file size must not exceed 25MB."
+      );
+      e.target.value = "";
+      return;
+    }
+
+    setFormError(null);
     setVideoFile(file);
     setVideoPreview(URL.createObjectURL(file));
 
@@ -170,6 +196,18 @@ export default function UserDashboard() {
     } finally {
       setVideoUploading(false);
     }
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview("");
+    setFormData(prev => ({ ...prev, imageUrl: "" }));
+  };
+
+  const handleRemoveVideo = () => {
+    setVideoFile(null);
+    setVideoPreview("");
+    setFormData(prev => ({ ...prev, videoUrl: "" }));
   };
 
   const handleLocationSelect = (lat: number, lng: number, address: string) => {
@@ -504,7 +542,6 @@ export default function UserDashboard() {
                     <FileImage className="w-8 h-8 text-orange-400" />
                     <input
                       type="file"
-                      required
                       accept="image/png, image/jpeg, image/jpg"
                       onChange={handlePhotoChange}
                       className="text-xs text-white/40 w-full"
@@ -512,11 +549,20 @@ export default function UserDashboard() {
                   </div>
                   {photoUploading && <div className="text-[10px] text-orange-400 font-bold">Uploading file...</div>}
                   {photoPreview && (
-                    <img
-                      src={photoPreview}
-                      className="mx-auto w-full h-24 object-cover rounded-xl mt-2 border border-white/5"
-                      alt="Preview"
-                    />
+                    <div className="space-y-2">
+                      <img
+                        src={photoPreview}
+                        className="mx-auto w-full h-24 object-cover rounded-xl mt-2 border border-white/5"
+                        alt="Preview"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemovePhoto}
+                        className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg text-[10px] uppercase transition-colors"
+                      >
+                        Remove Photo
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -526,7 +572,6 @@ export default function UserDashboard() {
                     <Video className="w-8 h-8 text-orange-400" />
                     <input
                       type="file"
-                      required
                       accept="video/mp4, video/mov"
                       onChange={handleVideoChange}
                       className="text-xs text-white/40 w-full"
@@ -534,11 +579,20 @@ export default function UserDashboard() {
                   </div>
                   {videoUploading && <div className="text-[10px] text-orange-400 font-bold">Uploading video...</div>}
                   {videoPreview && (
-                    <video
-                      src={videoPreview}
-                      controls
-                      className="mx-auto w-full h-24 object-cover rounded-xl mt-2 border border-white/5 bg-black"
-                    />
+                    <div className="space-y-2">
+                      <video
+                        src={videoPreview}
+                        controls
+                        className="mx-auto w-full h-24 object-cover rounded-xl mt-2 border border-white/5 bg-black"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveVideo}
+                        className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg text-[10px] uppercase transition-colors"
+                      >
+                        Remove Video
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
