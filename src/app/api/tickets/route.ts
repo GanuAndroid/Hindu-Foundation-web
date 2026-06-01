@@ -60,9 +60,6 @@ export async function POST(req: NextRequest) {
     if (!imageUrl) {
       return NextResponse.json({ error: "Animal image upload is required." }, { status: 400 });
     }
-    if (!videoUrl) {
-      return NextResponse.json({ error: "Animal video upload is required." }, { status: 400 });
-    }
     if (!latitude || !longitude) {
       return NextResponse.json({ error: "GPS Coordinates (Latitude & Longitude) are required." }, { status: 400 });
     }
