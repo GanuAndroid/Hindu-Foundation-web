@@ -363,6 +363,52 @@ export const dbService = {
     return mapUser(res.rows[0]);
   },
 
+  async updateUser(id: string, updates: Partial<Omit<User, "id" | "createdAt">>): Promise<User | undefined> {
+    await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      const idx = (db.users || []).findIndex((u: any) => u.id === id);
+      if (idx === -1) return undefined;
+      const updated = { ...db.users[idx], ...updates };
+      db.users[idx] = updated;
+      writeLocalJsonDb(db);
+      return updated;
+    }
+    const fields = Object.keys(updates);
+    if (fields.length === 0) {
+      const res = await pool.query("SELECT * FROM users WHERE id = $1", [id]);
+      return (res.rowCount ?? 0) > 0 ? mapUser(res.rows[0]) : undefined;
+    }
+    const setClauses: string[] = [];
+    const values: any[] = [id];
+    let argIndex = 2;
+    for (const field of fields) {
+      const colName = field === "createdAt" ? "created_at" : field;
+      setClauses.push(`${colName} = $${argIndex}`);
+      values.push((updates as any)[field]);
+      argIndex++;
+    }
+    const res = await pool.query(
+      `UPDATE users SET ${setClauses.join(", ")} WHERE id = $1 RETURNING *`,
+      values
+    );
+    if ((res.rowCount ?? 0) === 0) return undefined;
+    return mapUser(res.rows[0]);
+  },
+
+  async deleteUser(id: string): Promise<boolean> {
+    await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      const initialLength = (db.users || []).length;
+      db.users = (db.users || []).filter((u: any) => u.id !== id);
+      writeLocalJsonDb(db);
+      return db.users.length < initialLength;
+    }
+    const res = await pool.query("DELETE FROM users WHERE id = $1", [id]);
+    return (res.rowCount ?? 0) > 0;
+  },
+
   // --- RESCUE TEAMS ---
   async getRescueTeams(): Promise<RescueTeam[]> {
     await ensureDbInit();

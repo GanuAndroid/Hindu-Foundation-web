@@ -27,7 +27,7 @@ import {
   FileImage,
   Video
 } from "lucide-react";
-import { Ticket, RescueTeam, Donation } from "@/lib/types";
+import { Ticket, RescueTeam, Donation, User, UserRole } from "@/lib/types";
 
 export default function AdminDashboard() {
   const { user, loading } = useAuth();
@@ -58,6 +58,7 @@ export default function AdminDashboard() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [teams, setTeams] = useState<RescueTeam[]>([]);
   const [donations, setDonations] = useState<Donation[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [approvalAmounts, setApprovalAmounts] = useState<Record<string, string>>({});
 
@@ -74,6 +75,20 @@ export default function AdminDashboard() {
   // Search & Filters
   const [ticketSearch, setTicketSearch] = useState("");
   const [selectedTicketTab, setSelectedTicketTab] = useState<"All" | "Pending" | "Accepted" | "Closed">("All");
+
+  // User tab search & CRUD states
+  const [activeTab, setActiveTab] = useState<"terminal" | "teams" | "users" | "donations" | "proofs" | "reports">("terminal");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [userForm, setUserForm] = useState({
+    name: "",
+    mobile: "",
+    role: "user" as UserRole,
+  });
+  const [userFormError, setUserFormError] = useState<string | null>(null);
+  const [isSubmittingUser, setIsSubmittingUser] = useState(false);
 
   // Rescue Team CRUD States
   const [showTeamModal, setShowTeamModal] = useState(false);
@@ -104,15 +119,17 @@ export default function AdminDashboard() {
   const loadAdminData = async () => {
     setIsLoading(true);
     try {
-      const [tRes, tmRes, dRes] = await Promise.all([
+      const [tRes, tmRes, dRes, uRes] = await Promise.all([
         fetch("/api/tickets").then(r => r.json()),
         fetch("/api/teams").then(r => r.json()),
-        fetch("/api/donations").then(r => r.json())
+        fetch("/api/donations").then(r => r.json()),
+        fetch("/api/users").then(r => r.json())
       ]);
 
       if (Array.isArray(tRes)) setTickets(tRes);
       if (Array.isArray(tmRes)) setTeams(tmRes);
       if (Array.isArray(dRes)) setDonations(dRes);
+      if (Array.isArray(uRes)) setUsers(uRes);
     } catch (e) {
       console.error("Failed to load admin analytics scope", e);
     } finally {
@@ -220,6 +237,66 @@ export default function AdminDashboard() {
     }
   };
 
+  // CRUD: CREATE OR UPDATE USER
+  const handleUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUserFormError(null);
+
+    if (!userForm.name || !userForm.mobile || !userForm.role) {
+      setUserFormError(language === "hi" ? "सभी फ़ील्ड आवश्यक हैं।" : "All fields are required.");
+      return;
+    }
+
+    setIsSubmittingUser(true);
+    try {
+      const isEdit = !!editingUser;
+      const url = "/api/users";
+      const method = isEdit ? "PUT" : "POST";
+      const body = isEdit ? { id: editingUser.id, ...userForm } : userForm;
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (res.ok) {
+        setShowUserModal(false);
+        setEditingUser(null);
+        setUserForm({ name: "", mobile: "", role: "user" });
+        loadAdminData();
+      } else {
+        const err = await res.json();
+        setUserFormError(err.error || (language === "hi" ? "कार्रवाई विफल रही" : "Action failed"));
+      }
+    } catch (err) {
+      setUserFormError(language === "hi" ? "सर्वर संचार विफल रहा" : "Server communication failed");
+    } finally {
+      setIsSubmittingUser(false);
+    }
+  };
+
+  // CRUD: DELETE USER
+  const handleDeleteUser = async (id: string) => {
+    if (id === user?.id) {
+      alert(language === "hi" ? "आप स्वयं को ब्लॉक या हटा नहीं सकते!" : "You cannot delete your own admin account!");
+      return;
+    }
+    if (!confirm(language === "hi" ? "क्या आप वाकई इस उपयोगकर्ता को हटाना चाहते हैं?" : "Are you sure you want to delete this user?")) return;
+    try {
+      const res = await fetch(`/api/users?id=${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        loadAdminData();
+      } else {
+        alert("Failed to delete user.");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   // TICKET ALLOCATION SUBMIT
   const handleAssignTeamSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -317,11 +394,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // EXPORT TICKETS TO PRINT/PDF
-  const handlePrintTicketsReport = () => {
-    window.print();
-  };
-
   // Filtered Tickets
   const filteredTickets = tickets.filter((t) => {
     const matchesSearch = t.id.toLowerCase().includes(ticketSearch.toLowerCase()) ||
@@ -331,6 +403,12 @@ export default function AdminDashboard() {
     const matchesTab = selectedTicketTab === "All" ? true : t.status === selectedTicketTab;
     
     return matchesSearch && matchesTab;
+  });
+
+  // Filtered Users
+  const filteredUsers = users.filter((u) => {
+    return u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+           u.mobile.includes(userSearch);
   });
 
   // Calculate Metrics
@@ -348,386 +426,675 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="flex-grow bg-[#0B132B] text-white p-6 max-w-7xl mx-auto w-full space-y-10 min-h-screen">
+    <div className="min-h-screen bg-[#0B132B] text-white flex flex-col md:flex-row w-full overflow-x-hidden">
       
-      {/* Header Info */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/5 pb-6">
-        <div>
-          <span className="text-[#F15A24] font-black text-xs uppercase tracking-widest block">{t("admin.coreControl")}</span>
-          <h1 className="text-3xl font-black mt-1">{t("admin.portalTitle")}</h1>
-          <p className="text-xs text-white/50">{t("admin.portalSubtitle")}</p>
+      {/* MOBILE RESPONSIVE HEADER BAR */}
+      <div className="md:hidden flex items-center justify-between p-4 bg-slate-900 border-b border-white/5 w-full">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="w-6 h-6 text-orange-500 animate-pulse" />
+          <span className="font-black text-sm uppercase tracking-wider text-white">HF Admin Portal</span>
         </div>
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-white/80 border border-white/10"
+        >
+          <Sliders className="w-5 h-5" />
+        </button>
       </div>
 
-      {/* ANALYTICS HIGHLIGHT CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        {[
-          { label: t("admin.totalDonations"), val: `₹${totalDonationVal.toLocaleString()}`, icon: DollarSign, color: "border-orange-500/20 text-orange-400" },
-          { label: t("admin.tabTickets"), val: tickets.length, icon: Ambulance, color: "border-white/10 text-white" },
-          { label: t("admin.pendingResponse"), val: tickets.filter(t => t.status === "Pending").length, icon: Clock, color: "border-amber-500/20 text-amber-400" },
-          { label: t("admin.closedSuccessful"), val: tickets.filter(t => t.status === "Closed").length, icon: CheckCircle, color: "border-emerald-500/20 text-emerald-400" },
-          { label: t("admin.activeRescueUnits"), val: activeTeamsCount, icon: Users, color: "border-blue-500/20 text-blue-400" },
-        ].map((item, idx) => (
-          <div key={idx} className={`bg-white/[0.01] border p-5 rounded-2xl space-y-1.5 hover:border-orange-500/10 transition-colors ${item.color}`}>
-            <div className="flex justify-between items-center opacity-60">
-              <span className="text-[10px] uppercase font-bold tracking-wider">{item.label}</span>
-              <item.icon className="w-4 h-4" />
+      {/* ADMIN SIDEBAR */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 border-r border-white/5 p-6 flex flex-col justify-between shrink-0 transition-transform duration-300
+        md:relative md:translate-x-0
+        ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}
+      `}>
+        <div className="space-y-8">
+          {/* Logo Brand Block */}
+          <div className="flex items-center gap-3 pb-4 border-b border-white/5">
+            <div className="p-2 bg-orange-500/10 rounded-xl border border-orange-500/20">
+              <ShieldCheck className="w-6 h-6 text-orange-500" />
             </div>
-            <div className="text-2xl font-black">{item.val}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* 1) DISPATCH OPERATIONS TERMINAL */}
-      {/* TICKET DISPATCH & ASSIGNMENT PANEL */}
-      <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
-          <h3 className="font-extrabold text-lg flex items-center gap-2">
-            <Ambulance className="w-5 h-5 text-orange-400" />
-            {t("admin.dispatchTerminal")}
-          </h3>
-          
-          <div className="flex gap-4 w-full sm:w-auto">
-            {/* Search */}
-            <div className="relative flex-grow sm:w-60">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/40" />
-              <input
-                type="text"
-                placeholder={t("admin.searchPlaceholder")}
-                value={ticketSearch}
-                onChange={(e) => setTicketSearch(e.target.value)}
-                className="w-full bg-slate-950 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
-              />
+            <div>
+              <span className="text-[#F15A24] font-black text-[9px] uppercase tracking-widest block">{t("admin.coreControl")}</span>
+              <h2 className="text-sm font-black text-white uppercase tracking-wider">HF Admin</h2>
             </div>
-            {/* Download reports trigger */}
+          </div>
+
+          {/* Sidebar Menu Options */}
+          <nav className="space-y-1">
+            {[
+              { id: "terminal", label: language === "hi" ? "ऑपरेशन्स टर्मिनल" : "Operations Terminal", icon: Sliders },
+              { id: "teams", label: language === "hi" ? "बचाव दल प्रबंधन" : "Rescue Teams", icon: Ambulance },
+              { id: "users", label: language === "hi" ? "उपयोगकर्ता प्रबंधन" : "User Management", icon: Users },
+              { id: "donations", label: language === "hi" ? "दान बहीखाता (Ledger)" : "Donations Ledger", icon: DollarSign },
+              { id: "proofs", label: language === "hi" ? "ऑफ़लाइन दान ऑडिट" : "Offline Donation Proofs", icon: ShieldCheck },
+              { id: "reports", label: language === "hi" ? "सभी विश्लेषण रिपोर्ट" : "All Reports", icon: Heart }
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id as any);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`
+                    w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer border
+                    ${isActive 
+                      ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-500/30 shadow-md shadow-orange-500/10 scale-[1.02]" 
+                      : "text-white/60 hover:text-white hover:bg-white/[0.02] border-transparent"
+                    }
+                  `}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? "text-white animate-pulse" : "text-white/40"}`} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* User Info footer block */}
+        <div className="pt-4 border-t border-white/5 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center font-black text-orange-400 text-xs">
+              {user?.name?.slice(0, 2).toUpperCase() || "AD"}
+            </div>
+            <div className="min-w-0 flex-grow">
+              <div className="font-extrabold text-white text-xs truncate">{user?.name}</div>
+              <div className="text-[10px] text-white/40 font-mono truncate">{user?.mobile}</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* MOBILE DRAWER BACKDROP OVERLAY */}
+      {isMobileMenuOpen && (
+        <div
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="fixed inset-0 bg-black/60 z-30 md:hidden backdrop-blur-sm transition-opacity"
+        />
+      )}
+
+      {/* MAIN ADMIN WINDOW */}
+      <main className="flex-grow p-6 md:p-8 overflow-y-auto space-y-8 max-w-7xl mx-auto w-full">
+        
+        {/* Page Title Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/5 pb-6">
+          <div>
+            <span className="text-[#F15A24] font-black text-xs uppercase tracking-widest block">{t("admin.coreControl")}</span>
+            <h1 className="text-3xl font-black mt-1">
+              {activeTab === "terminal" && t("admin.portalTitle")}
+              {activeTab === "teams" && (language === "hi" ? "बचाव दल प्रबंधन" : "Rescue Teams")}
+              {activeTab === "users" && (language === "hi" ? "उपयोगकर्ता प्रबंधन" : "User Management")}
+              {activeTab === "donations" && (language === "hi" ? "दान बहीखाता (Ledger)" : "Donations Ledger")}
+              {activeTab === "proofs" && (language === "hi" ? "ऑफ़लाइन दान ऑडिट" : "Offline Donation Proofs")}
+              {activeTab === "reports" && (language === "hi" ? "सभी विश्लेषण रिपोर्ट" : "All Reports")}
+            </h1>
+            <p className="text-xs text-white/50">{t("admin.portalSubtitle")}</p>
+          </div>
+        </div>
+
+        {/* ANALYTICS HIGHLIGHT CARDS (Shown on Terminal & Reports Tabs) */}
+        {(activeTab === "terminal" || activeTab === "reports") && (
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            {[
+              { label: t("admin.totalDonations"), val: `₹${totalDonationVal.toLocaleString()}`, icon: DollarSign, color: "border-orange-500/20 text-orange-400" },
+              { label: t("admin.tabTickets"), val: tickets.length, icon: Ambulance, color: "border-white/10 text-white" },
+              { label: t("admin.pendingResponse"), val: tickets.filter(t => t.status === "Pending").length, icon: Clock, color: "border-amber-500/20 text-amber-400" },
+              { label: t("admin.closedSuccessful"), val: tickets.filter(t => t.status === "Closed").length, icon: CheckCircle, color: "border-emerald-500/20 text-emerald-400" },
+              { label: t("admin.activeRescueUnits"), val: activeTeamsCount, icon: Users, color: "border-blue-500/20 text-blue-400" },
+            ].map((item, idx) => (
+              <div key={idx} className={`bg-white/[0.01] border p-5 rounded-2xl space-y-1.5 hover:border-orange-500/10 transition-colors ${item.color}`}>
+                <div className="flex justify-between items-center opacity-60">
+                  <span className="text-[10px] uppercase font-bold tracking-wider">{item.label}</span>
+                  <item.icon className="w-4 h-4" />
+                </div>
+                <div className="text-2xl font-black">{item.val}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* VIEW 1: OPERATIONS DISPATCH TERMINAL */}
+        {activeTab === "terminal" && (
+          <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
+              <h3 className="font-extrabold text-lg flex items-center gap-2">
+                <Ambulance className="w-5 h-5 text-orange-400" />
+                {t("admin.dispatchTerminal")}
+              </h3>
+              
+              <div className="flex gap-4 w-full sm:w-auto">
+                <div className="relative flex-grow sm:w-60">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/40" />
+                  <input
+                    type="text"
+                    placeholder={t("admin.searchPlaceholder")}
+                    value={ticketSearch}
+                    onChange={(e) => setTicketSearch(e.target.value)}
+                    className="w-full bg-slate-950 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Ticket statuses navigation filters */}
+            <div className="flex gap-2 overflow-x-auto pb-1 border-b border-white/5">
+              {(["All", "Pending", "Accepted", "Closed"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setSelectedTicketTab(tab)}
+                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all flex-shrink-0 cursor-pointer ${
+                    selectedTicketTab === tab
+                      ? "bg-white/10 text-white font-extrabold"
+                      : "text-white/40 hover:text-white/70"
+                  }`}
+                >
+                  {tab === "All" && language === "hi" ? "सभी टिकट" : tab === "All" ? "All Tickets" : getStatusTranslation(tab)}
+                  <span className="ml-1.5 text-[10px] opacity-60">
+                    ({tab === "All" ? tickets.length : tickets.filter(t => t.status === tab).length})
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {isLoading ? (
+              <div className="text-center py-10 text-xs text-white/40">{t("admin.loadingTickets")}</div>
+            ) : filteredTickets.length === 0 ? (
+              <div className="text-center py-10 text-xs text-white/40">{t("admin.noIncidentReportsMatched")}</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/10 text-white/50 uppercase tracking-widest font-black text-[9px]">
+                      <th className="py-3 px-4">{t("admin.caseId")}</th>
+                      <th className="py-3 px-4">{t("admin.animalType")}</th>
+                      <th className="py-3 px-4">{t("admin.reportedDescription")}</th>
+                      <th className="py-3 px-4">{t("admin.currentStatus")}</th>
+                      <th className="py-3 px-4">{t("admin.assignedUnit")}</th>
+                      <th className="py-3 px-4 text-right">{t("team.actions")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {filteredTickets.map((tItem) => (
+                      <tr key={tItem.id} className="hover:bg-white/[0.01]">
+                        <td className="py-3 px-4 font-mono font-bold text-white/80">{tItem.id}</td>
+                        <td className="py-3 px-4 font-extrabold text-white">{tItem.animalType === "Other" ? tItem.customAnimalType : getAnimalTypeTranslation(tItem.animalType)}</td>
+                        <td className="py-3 px-4 text-white/70 max-w-xs truncate">{tItem.description}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                            tItem.status === "Closed"
+                              ? "bg-emerald-500/10 text-emerald-400"
+                              : tItem.status === "Accepted"
+                              ? "bg-blue-500/10 text-blue-400"
+                              : "bg-amber-500/10 text-amber-400"
+                          }`}>
+                            {getStatusTranslation(tItem.status)}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-white/70">
+                          {tItem.assignedRescueTeamName || (
+                            <span className="text-white/30 italic">{t("user.notAssigned")}</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right space-x-2">
+                          <button
+                            onClick={() => handleViewTicket(tItem)}
+                            className="px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/5 text-[10px] uppercase font-black text-orange-400 rounded-lg transition-colors cursor-pointer"
+                          >
+                            Incident Center
+                          </button>
+                          {tItem.status === "Pending" ? (
+                            <button
+                              onClick={() => setAllocatingTicket(tItem)}
+                              className="px-2.5 py-1 bg-orange-600 hover:bg-orange-500 text-[10px] uppercase font-black text-white rounded-lg transition-colors cursor-pointer"
+                            >
+                              Dispatch Unit
+                            </button>
+                          ) : (
+                            <span className="text-[10px] text-white/30 italic">{t("admin.incidentClosed")}</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* VIEW 2: RESCUE TEAM MANAGEMENT */}
+        {activeTab === "teams" && (
+          <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6">
+            <div className="flex justify-between items-center border-b border-white/5 pb-4">
+              <h3 className="font-extrabold text-lg flex items-center gap-2">
+                <Users className="w-5 h-5 text-orange-400" />
+                {t("admin.teamManagementTitle")}
+              </h3>
+              <button
+                onClick={() => {
+                  setEditingTeam(null);
+                  setTeamForm({ name: "", mobile: "", city: "", state: "", email: "", status: "Active" });
+                  setShowTeamModal(true);
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-white text-xs font-bold rounded-xl cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                {t("admin.createTeamBtn")}
+              </button>
+            </div>
+
+            {isLoading ? (
+              <div className="text-center py-10 text-xs text-white/40">{t("admin.loadingTeams")}</div>
+            ) : teams.length === 0 ? (
+              <div className="text-center py-10 text-xs text-white/40">{t("admin.noTeams")}</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/10 text-white/50 uppercase tracking-widest font-black text-[9px]">
+                      <th className="py-3 px-4">{t("admin.teamName")}</th>
+                      <th className="py-3 px-4">{t("admin.mobileNumber")}</th>
+                      <th className="py-3 px-4">{t("admin.locality")}</th>
+                      <th className="py-3 px-4">{t("admin.email")}</th>
+                      <th className="py-3 px-4">{t("admin.status")}</th>
+                      <th className="py-3 px-4 text-right">{t("team.actions")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {teams.map((team) => (
+                      <tr key={team.id} className="hover:bg-white/[0.01]">
+                        <td className="py-3 px-4 font-extrabold text-white">{team.name}</td>
+                        <td className="py-3 px-4 font-mono text-white/80">{team.mobile}</td>
+                        <td className="py-3 px-4 text-white/70">{team.city}, {team.state}</td>
+                        <td className="py-3 px-4 text-white/60">{team.email}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                            team.status === "Active" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
+                          }`}>
+                            {team.status === "Active" ? t("admin.active") : t("admin.disabled")}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right space-x-2">
+                          <button
+                            onClick={() => handleToggleTeamStatus(team)}
+                            title={team.status === "Active" ? t("admin.disableTeam") : t("admin.activateTeam")}
+                            className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-white cursor-pointer"
+                          >
+                            <Power className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingTeam(team);
+                              setTeamForm({ name: team.name, mobile: team.mobile, city: team.city, state: team.state, email: team.email, status: team.status });
+                              setShowTeamModal(true);
+                            }}
+                            className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-orange-400 cursor-pointer"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTeam(team.id)}
+                            className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-red-400 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* VIEW 3: USER MANAGEMENT */}
+        {activeTab === "users" && (
+          <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
+              <div>
+                <h3 className="font-extrabold text-lg flex items-center gap-2">
+                  <Users className="w-5 h-5 text-orange-400" />
+                  {language === "hi" ? "उपयोगकर्ता प्रबंधन" : "User Management"}
+                </h3>
+                <p className="text-xs text-white/40 mt-1">
+                  {language === "hi" ? "सभी नागरिकों, राहत दल और प्रशासनिक खातों का प्रबंधन करें" : "Manage all citizen, rescue team, and administrative accounts"}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setEditingUser(null);
+                  setUserForm({ name: "", mobile: "", role: "user" });
+                  setShowUserModal(true);
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-white text-xs font-bold rounded-xl cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                {language === "hi" ? "नया उपयोगकर्ता जोड़ें" : "Add New User"}
+              </button>
+            </div>
+
+            <div className="flex gap-4 w-full md:max-w-xs">
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/40" />
+                <input
+                  type="text"
+                  placeholder={language === "hi" ? "नाम या मोबाइल नंबर से खोजें..." : "Search by name or mobile..."}
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  className="w-full bg-slate-950 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="text-center py-10 text-xs text-white/40">
+                {language === "hi" ? "उपयोगकर्ता सूची लोड हो रही है..." : "Loading users list..."}
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="text-center py-10 text-xs text-white/40">
+                {language === "hi" ? "कोई उपयोगकर्ता नहीं मिला" : "No users found"}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/10 text-white/50 uppercase tracking-widest font-black text-[9px]">
+                      <th className="py-3 px-4">{language === "hi" ? "यूजर आईडी" : "User ID"}</th>
+                      <th className="py-3 px-4">{language === "hi" ? "नाम" : "Name"}</th>
+                      <th className="py-3 px-4">{language === "hi" ? "मोबाइल नंबर" : "Mobile Number"}</th>
+                      <th className="py-3 px-4">{language === "hi" ? "भूमिका (Role)" : "Role"}</th>
+                      <th className="py-3 px-4">{language === "hi" ? "पंजीकरण तिथि" : "Registered Date"}</th>
+                      <th className="py-3 px-4 text-right">{language === "hi" ? "कार्रवाई" : "Actions"}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {filteredUsers.map((uItem) => (
+                      <tr key={uItem.id} className="hover:bg-white/[0.01]">
+                        <td className="py-3 px-4 font-mono text-white/50">{uItem.id}</td>
+                        <td className="py-3 px-4 font-extrabold text-white">{uItem.name}</td>
+                        <td className="py-3 px-4 font-mono text-white/80">{uItem.mobile}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase border ${
+                            uItem.role === "admin" 
+                              ? "bg-red-500/10 text-red-400 border-red-500/20" 
+                              : uItem.role === "team"
+                              ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                              : "bg-slate-500/10 text-slate-400 border-slate-500/20"
+                          }`}>
+                            {uItem.role}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-white/40">
+                          {new Date(uItem.createdAt).toLocaleString()}
+                        </td>
+                        <td className="py-3 px-4 text-right space-x-2">
+                          <button
+                            onClick={() => {
+                              setEditingUser(uItem);
+                              setUserForm({ name: uItem.name, mobile: uItem.mobile, role: uItem.role });
+                              setShowUserModal(true);
+                            }}
+                            className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-orange-400 cursor-pointer"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(uItem.id)}
+                            disabled={uItem.id === user?.id}
+                            className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-red-400 disabled:opacity-30 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* VIEW 4: DONATIONS GENERAL LEDGER */}
+        {activeTab === "donations" && (
+          <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6">
+            <div className="flex justify-between items-center border-b border-white/5 pb-4">
+              <h3 className="font-extrabold text-lg flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-orange-400" />
+                {t("admin.donationsLedgerTitle")}
+              </h3>
+              
+              <button
+                onClick={handleExportDonations}
+                disabled={verifiedDonations.length === 0}
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#0B132B] hover:bg-[#1E293B] border border-white/10 text-orange-400 text-xs font-extrabold rounded-xl cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                {t("admin.exportCsvBtn")}
+              </button>
+            </div>
+
+            {isLoading ? (
+              <div className="text-center py-10 text-xs text-white/40">{t("admin.loadingDonations")}</div>
+            ) : verifiedDonations.length === 0 ? (
+              <div className="text-center py-10 text-xs text-white/40">{t("admin.emptyDonations")}</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/10 text-white/50 uppercase tracking-widest font-black text-[9px]">
+                      <th className="py-3 px-4">{t("admin.transactionId")}</th>
+                      <th className="py-3 px-4">{t("admin.donorName")}</th>
+                      <th className="py-3 px-4">{t("admin.mobileNumber")}</th>
+                      <th className="py-3 px-4">{t("admin.amount")}</th>
+                      <th className="py-3 px-4">{t("admin.paymentMode")}</th>
+                      <th className="py-3 px-4">{t("admin.paymentDate")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {verifiedDonations.map((d) => (
+                      <tr key={d.id} className="hover:bg-white/[0.01]">
+                        <td className="py-3 px-4 font-mono text-white/80 font-semibold">{d.transactionId}</td>
+                        <td className="py-3 px-4 font-extrabold text-white">{d.donorName}</td>
+                        <td className="py-3 px-4 font-mono text-white/60">{d.mobile}</td>
+                        <td className="py-3 px-4 font-black text-orange-400">₹{d.amount.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-white/70">{d.paymentMode}</td>
+                        <td className="py-3 px-4 text-white/40">{new Date(d.createdAt).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* VIEW 5: OFFLINE DONATION PROOFS */}
+        {activeTab === "proofs" && (
+          <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6">
+            <div className="flex justify-between items-center border-b border-white/5 pb-4">
+              <h3 className="font-extrabold text-lg flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-orange-400" />
+                {t("donate.admin.auditTitle")}
+              </h3>
+            </div>
+
+            {isLoading ? (
+              <div className="text-center py-10 text-xs text-white/40">{t("admin.loadingDonations")}</div>
+            ) : pendingProofs.length === 0 ? (
+              <div className="text-center py-10 text-xs text-white/40">{t("donate.admin.emptyProofs")}</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/10 text-white/50 uppercase tracking-widest font-black text-[9px]">
+                      <th className="py-3 px-4">{t("admin.transactionId")}</th>
+                      <th className="py-3 px-4">{t("admin.donorName")}</th>
+                      <th className="py-3 px-4">{t("admin.mobileNumber")}</th>
+                      <th className="py-3 px-4">{t("admin.paymentMode")}</th>
+                      <th className="py-3 px-4">{language === "hi" ? "रसीद प्रमाण" : "Receipt Proof"}</th>
+                      <th className="py-3 px-4">{language === "hi" ? "सत्यापन राशि (₹)" : "Verify Amount (₹)"}</th>
+                      <th className="py-3 px-4 text-right">{t("team.actions")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {pendingProofs.map((p) => (
+                      <tr key={p.id} className="hover:bg-white/[0.01]">
+                        <td className="py-3 px-4 font-mono text-white/80 font-semibold">{p.transactionId}</td>
+                        <td className="py-3 px-4 font-extrabold text-white">{p.donorName}</td>
+                        <td className="py-3 px-4 font-mono text-white/60">{p.mobile}</td>
+                        <td className="py-3 px-4 text-white/70">{p.paymentMode}</td>
+                        <td className="py-3 px-4 text-orange-400 font-extrabold">
+                          {p.screenshotUrl ? (
+                            <a
+                              href={p.screenshotUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:underline flex items-center gap-1.5"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              <span>{language === "hi" ? "रसीद देखें" : "View Receipt"}</span>
+                            </a>
+                          ) : (
+                            <span className="text-white/30 italic">No proof</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <input
+                            type="number"
+                            min="1"
+                            placeholder="₹"
+                            value={approvalAmounts[p.id] || ""}
+                            onChange={(e) => setApprovalAmounts({ ...approvalAmounts, [p.id]: e.target.value })}
+                            className="w-24 bg-slate-950 border border-white/10 rounded px-2.5 py-1.5 text-xs text-white font-mono"
+                          />
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <button
+                            onClick={() => handleVerifyDonationProof(p.id)}
+                            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-lg transition-colors cursor-pointer"
+                          >
+                            {t("donate.admin.verifyBtn")}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* VIEW 6: REPORTS & CHARTS */}
+        {activeTab === "reports" && (
+          <div className="space-y-8 w-full">
+            <AnimalCategoryReports />
+            <DonationsLedgerChart />
+            
+            {/* Direct analytical review details */}
+            <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-4">
+              <h3 className="font-extrabold text-sm uppercase tracking-wider text-orange-500">
+                {language === "hi" ? "सिस्टम प्रदर्शन रिपोर्ट" : "System Performance Review"}
+              </h3>
+              <p className="text-xs text-white/70 leading-relaxed font-medium">
+                {language === "hi" 
+                  ? "यह रिपोर्ट कुल दान विश्लेषण, राहत दल के सक्रिय योगदान, और रिपोर्ट किए गए मामलों के सफल समाधान चक्र को प्रदर्शित करती है। यह डेटा प्रत्येक गौशाला और चिकित्सा राहत अभियानों को मजबूत करने में मदद करता है।"
+                  : "This analytics pane represents overall verification flows, active volunteer ambulance dispatches, and emergency incident closures. The visual matrix helps administrative personnel allocate critical budget resources where they are needed most."}
+              </p>
+            </div>
+          </div>
+        )}
+
+      </main>
+
+      {/* USER CRUD MODAL */}
+      {showUserModal && (
+        <div className="fixed inset-0 z-50 flex justify-center items-start bg-black/80 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in">
+          <div className="bg-slate-900 border border-white/20 max-w-md w-full rounded-3xl p-6 shadow-2xl relative mx-auto my-auto">
             <button
-              onClick={handlePrintTicketsReport}
-              className="p-2 border border-white/15 rounded-xl text-white/60 hover:text-white hover:bg-white/5 flex items-center gap-1.5 text-xs font-bold"
-              title={t("admin.printTooltip")}
+              onClick={() => setShowUserModal(false)}
+              className="absolute top-5 right-5 text-white/40 hover:text-white cursor-pointer"
             >
-              <Download className="w-4 h-4" />
-              {t("admin.printLog")}
+              <X className="w-6 h-6" />
             </button>
+
+            <h3 className="text-lg font-black mb-6 text-white border-b border-white/5 pb-3">
+              {editingUser ? (language === "hi" ? "उपयोगकर्ता विवरण संपादित करें" : "Edit User Profile") : (language === "hi" ? "नया उपयोगकर्ता पंजीकृत करें" : "Register New Account")}
+            </h3>
+
+            {userFormError && (
+              <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-xs font-bold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                {userFormError}
+              </div>
+            )}
+
+            <form onSubmit={handleUserSubmit} className="space-y-4 text-xs font-bold text-white/70">
+              <div>
+                <label className="block mb-1.5 uppercase tracking-wider text-white/50">{language === "hi" ? "पूरा नाम" : "Full Name"}</label>
+                <input
+                  type="text"
+                  required
+                  placeholder={language === "hi" ? "नाम दर्ज करें" : "Enter full name"}
+                  value={userForm.name}
+                  onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1.5 uppercase tracking-wider text-white/50">{t("admin.mobileOtpLabel")}</label>
+                <input
+                  type="tel"
+                  required
+                  pattern="[0-9]{10}"
+                  disabled={!!editingUser}
+                  placeholder={t("admin.mobilePlaceholder")}
+                  value={userForm.mobile}
+                  onChange={(e) => setUserForm({ ...userForm, mobile: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white font-mono disabled:opacity-50"
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1.5 uppercase tracking-wider text-white/50">{language === "hi" ? "भूमिका (User Role)" : "Account Role"}</label>
+                <select
+                  value={userForm.role}
+                  onChange={(e) => setUserForm({ ...userForm, role: e.target.value as UserRole })}
+                  className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white"
+                >
+                  <option value="user">{language === "hi" ? "नागरिक (Citizen User)" : "Citizen Reporter (User)"}</option>
+                  <option value="team">{language === "hi" ? "राहत दल (Rescue Team Account)" : "Rescue Team User"}</option>
+                  <option value="admin">{language === "hi" ? "प्रशासक (Admin Profile)" : "Super Administrator"}</option>
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setShowUserModal(false)}
+                  className="w-1/3 py-3 border border-white/10 rounded-xl text-xs font-bold text-white/60 hover:text-white cursor-pointer"
+                >
+                  {t("admin.cancel")}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingUser}
+                  className="w-2/3 py-3 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-white font-black rounded-xl text-xs transition-opacity flex items-center justify-center cursor-pointer"
+                >
+                  {isSubmittingUser ? t("admin.savingDetails") : t("admin.saveTeamBtn")}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-
-        {/* Tab filters */}
-        <div className="flex gap-2 border-b border-white/5 pb-3">
-          {["All", "Pending", "Accepted", "Closed"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setSelectedTicketTab(tab as any)}
-              className={`px-4 py-2 text-xs font-extrabold border-b-2 transition-all ${
-                selectedTicketTab === tab
-                  ? "border-orange-500 text-orange-400"
-                  : "border-transparent text-white/50 hover:text-white"
-              }`}
-            >
-              {tab === "All" ? t("admin.tabAll") : tab === "Pending" ? t("user.pending") : tab === "Accepted" ? t("user.accepted") : t("user.closed")}
-            </button>
-          ))}
-        </div>
-
-        {/* Tickets Allocation list */}
-        {isLoading ? (
-          <div className="text-center py-10 text-xs text-white/40">{t("admin.loadingIncidents")}</div>
-        ) : filteredTickets.length === 0 ? (
-          <div className="text-center py-10 text-xs text-white/40">{t("admin.noTicketsFound")}</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-white/10 text-white/50 uppercase tracking-widest font-black text-[9px]">
-                  <th className="py-3 px-4">{t("admin.ticketIdHeader")}</th>
-                  <th className="py-3 px-4">{t("user.animalType")}</th>
-                  <th className="py-3 px-4">{t("admin.localityGrid")}</th>
-                  <th className="py-3 px-4">{t("user.assignedTeam")}</th>
-                  <th className="py-3 px-4">{t("team.status")}</th>
-                  <th className="py-3 px-4">{t("team.reportedOn")}</th>
-                  <th className="py-3 px-4 text-right">{t("admin.dispatchControl")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {filteredTickets.map((tItem) => (
-                  <tr
-                    key={tItem.id}
-                    onClick={() => handleViewTicket(tItem)}
-                    className="hover:bg-white/[0.03] transition-all cursor-pointer border-b border-white/5"
-                  >
-                    <td className="py-3 px-4 font-black text-white">{tItem.id}</td>
-                    <td className="py-3 px-4 font-extrabold text-white/95">
-                      {tItem.animalType === "Other" ? tItem.customAnimalType : getAnimalTypeTranslation(tItem.animalType)}
-                    </td>
-                    <td className="py-3 px-4 text-white/70">
-                      <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${tItem.latitude},${tItem.longitude}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-orange-500/20 border border-white/10 hover:border-orange-500/30 rounded-lg text-orange-400 font-extrabold transition-all text-xs group cursor-pointer"
-                        title={language === "hi" ? "गूगल मैप्स पर देखें" : "View directions on Google Maps"}
-                      >
-                        <MapPin className="w-3.5 h-3.5 group-hover:animate-bounce" />
-                        <span>{language === "hi" ? "दिशा-निर्देश" : "Directions"}</span>
-                      </a>
-                    </td>
-                    <td className="py-3 px-4 font-extrabold text-orange-400">
-                      {tItem.assignedRescueTeamName || t("admin.unassignedDispatch")}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                        tItem.status === "Closed"
-                          ? "bg-emerald-500/10 text-emerald-400"
-                          : tItem.status === "Accepted"
-                          ? "bg-blue-500/10 text-blue-400"
-                          : "bg-amber-500/10 text-amber-400"
-                      }`}>
-                        {getStatusTranslation(tItem.status)}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-white/40 font-mono">{new Date(tItem.createdAt).toLocaleString()}</td>
-                    <td className="py-3 px-4 text-right">
-                      {tItem.status !== "Closed" ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setAllocatingTicket(tItem);
-                            setSelectedTeamId(tItem.assignedRescueTeamId || "");
-                          }}
-                          className="px-3 py-1.5 bg-white/5 hover:bg-orange-500 hover:text-white border border-white/10 hover:border-orange-500 rounded-lg text-white/70 font-bold transition-all cursor-pointer"
-                        >
-                          {tItem.assignedRescueTeamId ? t("admin.rerouteTeam") : t("admin.assignTeam")}
-                        </button>
-                      ) : (
-                        <span className="text-[10px] text-white/30 italic">{t("admin.incidentClosed")}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* 2) RESCUE TEAM MANAGEMENT */}
-      {/* RESCUE TEAMS CRUD PANEL */}
-      <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6">
-        <div className="flex justify-between items-center border-b border-white/5 pb-4">
-          <h3 className="font-extrabold text-lg flex items-center gap-2">
-            <Users className="w-5 h-5 text-orange-400" />
-            {t("admin.teamManagementTitle")}
-          </h3>
-          <button
-            onClick={() => {
-              setEditingTeam(null);
-              setTeamForm({ name: "", mobile: "", city: "", state: "", email: "", status: "Active" });
-              setShowTeamModal(true);
-            }}
-            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-white text-xs font-bold rounded-xl"
-          >
-            <Plus className="w-4 h-4" />
-            {t("admin.createTeamBtn")}
-          </button>
-        </div>
-
-        {isLoading ? (
-          <div className="text-center py-10 text-xs text-white/40">{t("admin.loadingTeams")}</div>
-        ) : teams.length === 0 ? (
-          <div className="text-center py-10 text-xs text-white/40">{t("admin.noTeams")}</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-white/10 text-white/50 uppercase tracking-widest font-black text-[9px]">
-                  <th className="py-3 px-4">{t("admin.teamName")}</th>
-                  <th className="py-3 px-4">{t("admin.mobileNumber")}</th>
-                  <th className="py-3 px-4">{t("admin.locality")}</th>
-                  <th className="py-3 px-4">{t("admin.email")}</th>
-                  <th className="py-3 px-4">{t("admin.status")}</th>
-                  <th className="py-3 px-4 text-right">{t("team.actions")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {teams.map((team) => (
-                  <tr key={team.id} className="hover:bg-white/[0.01]">
-                    <td className="py-3 px-4 font-extrabold text-white">{team.name}</td>
-                    <td className="py-3 px-4 font-mono text-white/80">{team.mobile}</td>
-                    <td className="py-3 px-4 text-white/70">{team.city}, {team.state}</td>
-                    <td className="py-3 px-4 text-white/60">{team.email}</td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                        team.status === "Active" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
-                      }`}>
-                        {team.status === "Active" ? t("admin.active") : t("admin.disabled")}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right space-x-2">
-                      <button
-                        onClick={() => handleToggleTeamStatus(team)}
-                        title={team.status === "Active" ? t("admin.disableTeam") : t("admin.activateTeam")}
-                        className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-white"
-                      >
-                        <Power className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditingTeam(team);
-                          setTeamForm({ name: team.name, mobile: team.mobile, city: team.city, state: team.state, email: team.email, status: team.status });
-                          setShowTeamModal(true);
-                        }}
-                        className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-orange-400"
-                      >
-                        <Edit className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteTeam(team.id)}
-                        className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-red-400"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* 3) DONATIONS GENERAL LEDGER */}
-      {/* DONATION LEDGER MANAGEMENT */}
-      <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6">
-        <div className="flex justify-between items-center border-b border-white/5 pb-4">
-          <h3 className="font-extrabold text-lg flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-orange-400" />
-            {t("admin.donationsLedgerTitle")}
-          </h3>
-          
-          <button
-            onClick={handleExportDonations}
-            disabled={verifiedDonations.length === 0}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#0B132B] hover:bg-[#1E293B] border border-white/10 text-orange-400 text-xs font-extrabold rounded-xl"
-          >
-            <Download className="w-4 h-4" />
-            {t("admin.exportCsvBtn")}
-          </button>
-        </div>
-
-        {isLoading ? (
-          <div className="text-center py-10 text-xs text-white/40">{t("admin.loadingDonations")}</div>
-        ) : verifiedDonations.length === 0 ? (
-          <div className="text-center py-10 text-xs text-white/40">{t("admin.emptyDonations")}</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-white/10 text-white/50 uppercase tracking-widest font-black text-[9px]">
-                  <th className="py-3 px-4">{t("admin.transactionId")}</th>
-                  <th className="py-3 px-4">{t("admin.donorName")}</th>
-                  <th className="py-3 px-4">{t("admin.mobileNumber")}</th>
-                  <th className="py-3 px-4">{t("admin.amount")}</th>
-                  <th className="py-3 px-4">{t("admin.paymentMode")}</th>
-                  <th className="py-3 px-4">{t("admin.paymentDate")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {verifiedDonations.map((d) => (
-                  <tr key={d.id} className="hover:bg-white/[0.01]">
-                    <td className="py-3 px-4 font-mono text-white/80 font-semibold">{d.transactionId}</td>
-                    <td className="py-3 px-4 font-extrabold text-white">{d.donorName}</td>
-                    <td className="py-3 px-4 font-mono text-white/60">{d.mobile}</td>
-                    <td className="py-3 px-4 font-black text-orange-400">₹{d.amount.toLocaleString()}</td>
-                    <td className="py-3 px-4 text-white/70">{d.paymentMode}</td>
-                    <td className="py-3 px-4 text-white/40">{new Date(d.createdAt).toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* PENDING OFFLINE DONATION PROOFS AUDIT */}
-      <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6">
-        <div className="flex justify-between items-center border-b border-white/5 pb-4">
-          <h3 className="font-extrabold text-lg flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-orange-400" />
-            {t("donate.admin.auditTitle")}
-          </h3>
-        </div>
-
-        {isLoading ? (
-          <div className="text-center py-10 text-xs text-white/40">{t("admin.loadingDonations")}</div>
-        ) : pendingProofs.length === 0 ? (
-          <div className="text-center py-10 text-xs text-white/40">{t("donate.admin.emptyProofs")}</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-white/10 text-white/50 uppercase tracking-widest font-black text-[9px]">
-                  <th className="py-3 px-4">{t("admin.transactionId")}</th>
-                  <th className="py-3 px-4">{t("admin.donorName")}</th>
-                  <th className="py-3 px-4">{t("admin.mobileNumber")}</th>
-                  <th className="py-3 px-4">{t("admin.paymentMode")}</th>
-                  <th className="py-3 px-4">{language === "hi" ? "रसीद प्रमाण" : "Receipt Proof"}</th>
-                  <th className="py-3 px-4">{language === "hi" ? "सत्यापन राशि (₹)" : "Verify Amount (₹)"}</th>
-                  <th className="py-3 px-4 text-right">{t("team.actions")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {pendingProofs.map((p) => (
-                  <tr key={p.id} className="hover:bg-white/[0.01]">
-                    <td className="py-3 px-4 font-mono text-white/80 font-semibold">{p.transactionId}</td>
-                    <td className="py-3 px-4 font-extrabold text-white">{p.donorName}</td>
-                    <td className="py-3 px-4 font-mono text-white/60">{p.mobile}</td>
-                    <td className="py-3 px-4 text-white/70">{p.paymentMode}</td>
-                    <td className="py-3 px-4 text-orange-400 font-extrabold">
-                      {p.screenshotUrl ? (
-                        <a
-                          href={p.screenshotUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hover:underline flex items-center gap-1.5"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          <span>{language === "hi" ? "रसीद देखें" : "View Receipt"}</span>
-                        </a>
-                      ) : (
-                        <span className="text-white/30 italic">No proof</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <input
-                        type="number"
-                        min="1"
-                        placeholder="₹"
-                        value={approvalAmounts[p.id] || ""}
-                        onChange={(e) => setApprovalAmounts({ ...approvalAmounts, [p.id]: e.target.value })}
-                        className="w-24 bg-slate-950 border border-white/10 rounded px-2.5 py-1.5 text-xs text-white font-mono"
-                      />
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <button
-                        onClick={() => handleVerifyDonationProof(p.id)}
-                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-lg transition-colors cursor-pointer"
-                      >
-                        {t("donate.admin.verifyBtn")}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* 4) ANIMAL CATEGORY REPORTS */}
-      <AnimalCategoryReports />
-
-      {/* 5) DONATIONS LEDGER CHART */}
-      <DonationsLedgerChart />
+      )}
 
       {/* RESCUE TEAM CRUD MODAL */}
       {showTeamModal && (
@@ -735,7 +1102,7 @@ export default function AdminDashboard() {
           <div className="bg-slate-900 border border-white/20 max-w-lg w-full rounded-3xl p-6 shadow-2xl relative mx-auto my-auto">
             <button
               onClick={() => setShowTeamModal(false)}
-              className="absolute top-5 right-5 text-white/40 hover:text-white"
+              className="absolute top-5 right-5 text-white/40 hover:text-white cursor-pointer"
             >
               <X className="w-6 h-6" />
             </button>
@@ -831,7 +1198,7 @@ export default function AdminDashboard() {
                 <button
                   type="button"
                   onClick={() => setShowTeamModal(false)}
-                  className="w-1/3 py-3 border border-white/10 rounded-xl text-xs font-bold text-white/60 hover:text-white"
+                  className="w-1/3 py-3 border border-white/10 rounded-xl text-xs font-bold text-white/60 hover:text-white cursor-pointer"
                 >
                   {t("admin.cancel")}
                 </button>
@@ -854,7 +1221,7 @@ export default function AdminDashboard() {
           <div className="bg-slate-900 border border-white/20 max-w-md w-full rounded-3xl p-6 shadow-2xl relative mx-auto my-auto">
             <button
               onClick={() => setAllocatingTicket(null)}
-              className="absolute top-5 right-5 text-white/40 hover:text-white"
+              className="absolute top-5 right-5 text-white/40 hover:text-white cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1173,4 +1540,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
