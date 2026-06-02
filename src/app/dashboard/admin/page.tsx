@@ -25,7 +25,9 @@ import {
   ShieldCheck,
   MapPin,
   FileImage,
-  Video
+  Video,
+  Server,
+  Activity
 } from "lucide-react";
 import { Ticket, RescueTeam, Donation, User, UserRole } from "@/lib/types";
 
@@ -76,9 +78,11 @@ export default function AdminDashboard() {
   const [ticketSearch, setTicketSearch] = useState("");
   const [selectedTicketTab, setSelectedTicketTab] = useState<"All" | "Pending" | "Accepted" | "Closed">("All");
 
-  // User tab search & CRUD states
-  const [activeTab, setActiveTab] = useState<"terminal" | "teams" | "users" | "donations" | "proofs" | "reports">("terminal");
+  // Tab navigation states
+  const [activeTab, setActiveTab] = useState<"terminal" | "teams" | "users" | "donations" | "proofs" | "reports" | "monitor">("terminal");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // User tab search & CRUD states
   const [userSearch, setUserSearch] = useState("");
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -107,6 +111,12 @@ export default function AdminDashboard() {
   // Ticket Allocation Modal
   const [allocatingTicket, setAllocatingTicket] = useState<Ticket | null>(null);
   const [selectedTeamId, setSelectedTeamId] = useState("");
+
+  // Server Monitor Live Metrics States
+  const [serverHealth, setServerHealth] = useState<any>(null);
+  const [isHealthLoading, setIsHealthLoading] = useState(false);
+  const [healthError, setHealthError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState("");
 
   // Redirect if not admin
   useEffect(() => {
@@ -140,6 +150,44 @@ export default function AdminDashboard() {
   useEffect(() => {
     loadAdminData();
   }, []);
+
+  // Fetch Server Health Statistics
+  const fetchServerHealth = async (silent = false) => {
+    if (!user) return;
+    if (!silent) setIsHealthLoading(true);
+    setHealthError(null);
+    try {
+      const res = await fetch("/api/admin/server-health", {
+        headers: {
+          "x-admin-role": user.role,
+          "x-admin-mobile": user.mobile,
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setServerHealth(data);
+        setLastUpdated(new Date().toLocaleTimeString());
+      } else {
+        const err = await res.json();
+        setHealthError(err.error || "Failed to load server stats.");
+      }
+    } catch (e) {
+      setHealthError("Failed to communicate with server monitoring API.");
+    } finally {
+      if (!silent) setIsHealthLoading(false);
+    }
+  };
+
+  // Trigger server health intervals when activeTab === monitor
+  useEffect(() => {
+    if (activeTab === "monitor") {
+      fetchServerHealth();
+      const interval = setInterval(() => {
+        fetchServerHealth(true);
+      }, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [activeTab]);
 
   // Handle detailed incident view popup
   const handleViewTicket = async (ticket: Ticket) => {
@@ -464,11 +512,12 @@ export default function AdminDashboard() {
           <nav className="space-y-1">
             {[
               { id: "terminal", label: language === "hi" ? "ऑपरेशन्स टर्मिनल" : "Operations Terminal", icon: Sliders },
-              { id: "teams", label: language === "hi" ? "बचाव दल प्रबंधन" : "Rescue Teams", icon: Ambulance },
+              { id: "teams", label: language === "hi" ? "बचाव दल" : "Rescue Teams", icon: Ambulance },
               { id: "users", label: language === "hi" ? "उपयोगकर्ता प्रबंधन" : "User Management", icon: Users },
               { id: "donations", label: language === "hi" ? "दान बहीखाता (Ledger)" : "Donations Ledger", icon: DollarSign },
               { id: "proofs", label: language === "hi" ? "ऑफ़लाइन दान ऑडिट" : "Offline Donation Proofs", icon: ShieldCheck },
-              { id: "reports", label: language === "hi" ? "सभी विश्लेषण रिपोर्ट" : "All Reports", icon: Heart }
+              { id: "reports", label: language === "hi" ? "सभी विश्लेषण रिपोर्ट" : "All Reports", icon: Heart },
+              { id: "monitor", label: language === "hi" ? "सर्वर मॉनिटर" : "Server Monitor", icon: Server }
             ].map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -526,11 +575,12 @@ export default function AdminDashboard() {
             <span className="text-[#F15A24] font-black text-xs uppercase tracking-widest block">{t("admin.coreControl")}</span>
             <h1 className="text-3xl font-black mt-1">
               {activeTab === "terminal" && t("admin.portalTitle")}
-              {activeTab === "teams" && (language === "hi" ? "बचाव दल प्रबंधन" : "Rescue Teams")}
+              {activeTab === "teams" && (language === "hi" ? "बचाव दल" : "Rescue Teams")}
               {activeTab === "users" && (language === "hi" ? "उपयोगकर्ता प्रबंधन" : "User Management")}
               {activeTab === "donations" && (language === "hi" ? "दान बहीखाता (Ledger)" : "Donations Ledger")}
               {activeTab === "proofs" && (language === "hi" ? "ऑफ़लाइन दान ऑडिट" : "Offline Donation Proofs")}
               {activeTab === "reports" && (language === "hi" ? "सभी विश्लेषण रिपोर्ट" : "All Reports")}
+              {activeTab === "monitor" && (language === "hi" ? "सर्वर मॉनिटर" : "Server Monitor")}
             </h1>
             <p className="text-xs text-white/50">{t("admin.portalSubtitle")}</p>
           </div>
@@ -1008,6 +1058,355 @@ export default function AdminDashboard() {
                   : "This analytics pane represents overall verification flows, active volunteer ambulance dispatches, and emergency incident closures. The visual matrix helps administrative personnel allocate critical budget resources where they are needed most."}
               </p>
             </div>
+          </div>
+        )}
+
+        {/* VIEW 7: SERVER HEALTH MONITORING DASHBOARD */}
+        {activeTab === "monitor" && (
+          <div className="space-y-8 w-full">
+            
+            {/* Last updated and quick reload toolbar */}
+            <div className="flex justify-between items-center bg-slate-900 border border-white/10 p-4 rounded-2xl">
+              <span className="text-xs text-white/50 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                {language === "hi" ? `अंतिम अद्यतन: ${lastUpdated || "कभी नहीं"}` : `Last Updated: ${lastUpdated || "Never"}`}
+                <span className="text-[10px] bg-slate-950 px-2 py-0.5 rounded-full text-white/30 tracking-widest font-mono">10s REFRESH</span>
+              </span>
+              <button
+                onClick={() => fetchServerHealth()}
+                disabled={isHealthLoading}
+                className="px-3.5 py-1.5 bg-[#0B132B] hover:bg-[#1E293B] border border-white/10 text-orange-400 text-xs font-black rounded-xl transition-all cursor-pointer disabled:opacity-40"
+              >
+                {isHealthLoading ? (language === "hi" ? "रिफ्रेशिंग..." : "Refreshing...") : (language === "hi" ? "अभी रिफ्रेश करें" : "Refresh Now")}
+              </button>
+            </div>
+
+            {healthError && (
+              <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-xs font-bold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                {healthError}
+              </div>
+            )}
+
+            {/* LIVE ALERT NOTIFICATIONS SYSTEM */}
+            {serverHealth && (
+              <div className="space-y-2">
+                {serverHealth.cpu.usage > 80 && (
+                  <div className="p-4 bg-red-500/15 border border-red-500/30 rounded-2xl text-red-400 text-xs font-black flex items-center gap-2 animate-pulse">
+                    <AlertCircle className="w-4 h-4 text-red-500" />
+                    <span>⚠️ ALERT: High CPU usage detected ({serverHealth.cpu.usage}%)! System resources heavily loaded.</span>
+                  </div>
+                )}
+                {serverHealth.memory.percentage > 85 && (
+                  <div className="p-4 bg-red-500/15 border border-red-500/30 rounded-2xl text-red-400 text-xs font-black flex items-center gap-2 animate-pulse">
+                    <AlertCircle className="w-4 h-4 text-red-500" />
+                    <span>⚠️ ALERT: Memory usage is extremely high ({serverHealth.memory.percentage}%)! Consider checking leak traces.</span>
+                  </div>
+                )}
+                {serverHealth.storage.percentage > 90 && (
+                  <div className="p-4 bg-orange-500/15 border border-orange-500/30 rounded-2xl text-orange-400 text-xs font-black flex items-center gap-2 animate-pulse">
+                    <AlertCircle className="w-4 h-4 text-orange-400" />
+                    <span>⚠️ WARNING: Low disk space available! Storage almost full ({serverHealth.storage.percentage}% used). Please clean logs.</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!serverHealth && isHealthLoading ? (
+              <div className="text-center py-20 text-xs text-white/40 animate-pulse">
+                {language === "hi" ? "सर्वर स्वास्थ्य मेट्रिक्स एकत्र किए जा रहे हैं..." : "Gathering server health metrics..."}
+              </div>
+            ) : !serverHealth ? (
+              <div className="text-center py-20 text-xs text-white/40">
+                {language === "hi" ? "कोई डेटा उपलब्ध नहीं है" : "No monitoring data available."}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                
+                {/* CORE RESOURCE CARDS GRID */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  
+                  {/* Card 1: RAM Memory usage circular monitor */}
+                  <div className="bg-slate-900 border border-white/10 p-6 rounded-3xl flex flex-col justify-between items-center text-center space-y-4">
+                    <div className="w-full flex justify-between items-center border-b border-white/5 pb-2 text-left">
+                      <span className="text-xs uppercase font-extrabold text-white/40">RAM Usage</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${
+                        serverHealth.memory.percentage >= 85 
+                          ? "bg-red-500/10 text-red-400" 
+                          : serverHealth.memory.percentage >= 70
+                          ? "bg-amber-500/10 text-amber-400"
+                          : "bg-emerald-500/10 text-emerald-400"
+                      }`}>
+                        {serverHealth.memory.percentage >= 85 
+                          ? "Critical" 
+                          : serverHealth.memory.percentage >= 70
+                          ? "Warning"
+                          : "Normal"}
+                      </span>
+                    </div>
+
+                    {/* Circular visual logic */}
+                    <div className="relative w-28 h-28 flex items-center justify-center">
+                      <svg className="w-full h-full transform -rotate-90">
+                        <circle cx="56" cy="56" r="46" strokeWidth="8" stroke="rgba(255,255,255,0.03)" fill="transparent" />
+                        <circle cx="56" cy="56" r="46" strokeWidth="8" 
+                                stroke={serverHealth.memory.percentage >= 85 ? "#EF4444" : serverHealth.memory.percentage >= 70 ? "#F59E0B" : "#F15A24"}
+                                strokeDasharray={2 * Math.PI * 46} 
+                                strokeDashoffset={2 * Math.PI * 46 * (1 - serverHealth.memory.percentage / 100)} 
+                                strokeLinecap="round" fill="transparent" />
+                      </svg>
+                      <div className="absolute flex flex-col items-center">
+                        <span className="text-2xl font-black text-white">{serverHealth.memory.percentage}%</span>
+                        <span className="text-[8px] uppercase tracking-wider text-white/40">Used</span>
+                      </div>
+                    </div>
+
+                    <div className="w-full text-xs text-white/70 space-y-1.5 text-left bg-white/[0.01] p-3 rounded-2xl border border-white/5">
+                      <div className="flex justify-between">
+                        <span className="text-white/40 font-bold">Total RAM:</span>
+                        <span className="font-extrabold text-white">{serverHealth.memory.total}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/40 font-bold">Used RAM:</span>
+                        <span className="font-extrabold text-orange-400">{serverHealth.memory.used}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/40 font-bold">Available:</span>
+                        <span className="font-extrabold text-emerald-400">{serverHealth.memory.free}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 2: CPU load & processor details */}
+                  <div className="bg-slate-900 border border-white/10 p-6 rounded-3xl flex flex-col justify-between space-y-4">
+                    <div className="w-full flex justify-between items-center border-b border-white/5 pb-2">
+                      <span className="text-xs uppercase font-extrabold text-white/40">CPU Monitor</span>
+                      <Activity className="w-4 h-4 text-orange-400 animate-pulse" />
+                    </div>
+
+                    {/* Progress Bar Display */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-white/60 font-bold">CPU Usage</span>
+                        <span className="font-black text-orange-400">{serverHealth.cpu.usage}%</span>
+                      </div>
+                      <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden border border-white/10">
+                        <div className="h-full bg-gradient-to-r from-orange-500 to-[#FF8C00] transition-all duration-1000"
+                             style={{ width: `${serverHealth.cpu.usage}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-white/70 space-y-2 bg-white/[0.01] p-3 rounded-2xl border border-white/5">
+                      <div>
+                        <span className="block text-[8px] uppercase text-white/40 font-bold">Processor Name</span>
+                        <span className="font-extrabold text-white line-clamp-1">{serverHealth.cpu.processor}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <div>
+                          <span className="block text-[8px] uppercase text-white/40 font-bold">Architecture</span>
+                          <span className="font-mono text-white/90">{serverHealth.cpu.architecture}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[8px] uppercase text-white/40 font-bold">CPU Cores</span>
+                          <span className="font-extrabold text-white">{serverHealth.cpu.cores} Cores</span>
+                        </div>
+                      </div>
+                      <div className="border-t border-white/5 pt-1.5 flex justify-between items-center">
+                        <span className="text-white/40 font-bold">Load Average:</span>
+                        <span className="font-mono font-black text-white">{serverHealth.cpu.loadAverage}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Storage Disk utilization */}
+                  <div className="bg-slate-900 border border-white/10 p-6 rounded-3xl flex flex-col justify-between space-y-4">
+                    <div className="w-full flex justify-between items-center border-b border-white/5 pb-2">
+                      <span className="text-xs uppercase font-extrabold text-white/40">Storage Partition</span>
+                      <Server className="w-4 h-4 text-orange-400" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-white/60 font-bold">Disk Space Used</span>
+                        <span className="font-black text-orange-400">{serverHealth.storage.percentage}%</span>
+                      </div>
+                      <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden border border-white/10">
+                        <div className="h-full bg-gradient-to-r from-orange-500 to-[#FF8C00] transition-all duration-1000"
+                             style={{ width: `${serverHealth.storage.percentage}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-white/70 space-y-1.5 bg-white/[0.01] p-3 rounded-2xl border border-white/5">
+                      <div className="flex justify-between">
+                        <span className="text-white/40 font-bold">Total Storage:</span>
+                        <span className="font-extrabold text-white">{serverHealth.storage.total}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/40 font-bold">Used Disk Space:</span>
+                        <span className="font-extrabold text-orange-400">{serverHealth.storage.used}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/40 font-bold">Available Free:</span>
+                        <span className="font-extrabold text-emerald-400">{serverHealth.storage.available}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SERVER INFORMATION TABLES & DATABASE STATUSES */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  
+                  {/* OS Operating system and versions table */}
+                  <div className="bg-slate-900 border border-white/10 p-6 rounded-3xl space-y-4">
+                    <h4 className="font-extrabold text-sm uppercase tracking-wider text-orange-500 border-b border-white/5 pb-2 flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4" />
+                      Server Information
+                    </h4>
+                    
+                    <div className="text-xs space-y-2">
+                      {[
+                        { label: "Operating System", val: serverHealth.server.os },
+                        { label: "Platform / Architecture", val: `${serverHealth.server.platform} / ${serverHealth.server.architecture}` },
+                        { label: "Hostname / Host IP", val: `${serverHealth.server.hostname} (${serverHealth.server.ip})` },
+                        { label: "Node.js Environment", val: serverHealth.server.nodeVersion },
+                        { label: "Server Time / Zone", val: `${serverHealth.server.currentTime} (${serverHealth.server.timezone})` },
+                        { label: "Server Uptime", val: serverHealth.server.uptime, highlight: true },
+                        { label: "App Uptime", val: serverHealth.server.appUptime, highlight: true },
+                      ].map((row, idx) => (
+                        <div key={idx} className="flex justify-between items-center py-1 border-b border-white/[0.02]">
+                          <span className="text-white/50 font-bold">{row.label}</span>
+                          <span className={`font-semibold ${row.highlight ? "text-orange-400 font-extrabold" : "text-white"}`}>
+                            {row.val}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Database & Application Health states */}
+                  <div className="space-y-6">
+                    
+                    {/* PostgreSQL database connector stat */}
+                    <div className="bg-slate-900 border border-white/10 p-6 rounded-3xl space-y-4">
+                      <h4 className="font-extrabold text-sm uppercase tracking-wider text-orange-500 border-b border-white/5 pb-2 flex justify-between items-center">
+                        <span className="flex items-center gap-2">
+                          <Sliders className="w-4 h-4" />
+                          Database connection status
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                          serverHealth.database.status === "CONNECTED" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/25" : "bg-red-500/10 text-red-400 border border-red-500/25"
+                        }`}>
+                          {serverHealth.database.status}
+                        </span>
+                      </h4>
+                      <div className="text-xs space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-white/50 font-bold">Database Driver</span>
+                          <span className="font-extrabold text-white">PostgreSQL (Neon Serverless)</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-white/50 font-bold">Database Name</span>
+                          <span className="font-mono text-white/80">{serverHealth.database.name}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-white/50 font-bold">Query Response Time</span>
+                          <span className="font-extrabold text-emerald-400">{serverHealth.database.responseTime}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Integrated Firebase & Health Indicators */}
+                    <div className="bg-slate-900 border border-white/10 p-6 rounded-3xl space-y-4">
+                      <h4 className="font-extrabold text-sm uppercase tracking-wider text-orange-500 border-b border-white/5 pb-2">
+                        Application Service Health
+                      </h4>
+                      
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        {[
+                          { label: "Backend API", val: serverHealth.health.apiStatus, active: serverHealth.health.apiStatus === "ONLINE" },
+                          { label: "Firebase OTP", val: serverHealth.health.firebaseStatus, active: serverHealth.health.firebaseStatus === "CONNECTED" },
+                          { label: "S3 Storage", val: serverHealth.health.storageStatus, active: serverHealth.health.storageStatus === "AVAILABLE" },
+                        ].map((stat, idx) => (
+                          <div key={idx} className="bg-white/[0.01] border border-white/5 rounded-2xl p-3 space-y-1">
+                            <span className="block text-[8px] uppercase tracking-wider text-white/40 font-bold">{stat.label}</span>
+                            <span className={`block text-[10px] font-black uppercase ${
+                              stat.active ? "text-emerald-400" : "text-red-400"
+                            }`}>
+                              {stat.val}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* NETWORK SPEEDS & FLOW INFO */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  
+                  {/* Active Network Metrics */}
+                  <div className="bg-slate-900 border border-white/10 p-6 rounded-3xl space-y-4">
+                    <h4 className="font-extrabold text-sm uppercase tracking-wider text-orange-500 border-b border-white/5 pb-2">
+                      Network Interfaces Speed
+                    </h4>
+                    
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-3">
+                        <span className="block text-[8px] uppercase tracking-wider text-white/40 font-bold">Upload (TX)</span>
+                        <span className="block text-sm font-black text-orange-400 mt-1">{serverHealth.network.upload}</span>
+                      </div>
+                      <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-3">
+                        <span className="block text-[8px] uppercase tracking-wider text-white/40 font-bold">Download (RX)</span>
+                        <span className="block text-sm font-black text-emerald-400 mt-1">{serverHealth.network.download}</span>
+                      </div>
+                      <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-3">
+                        <span className="block text-[8px] uppercase tracking-wider text-white/40 font-bold">Interface Speed</span>
+                        <span className="block text-sm font-black text-white mt-1">{serverHealth.network.speed}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Network stats load */}
+                  <div className="bg-slate-900 border border-white/10 p-6 rounded-3xl space-y-4">
+                    <h4 className="font-extrabold text-sm uppercase tracking-wider text-orange-500 border-b border-white/5 pb-2">
+                      API Metrics Overview
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4 text-center">
+                      <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-3">
+                        <span className="block text-[8px] uppercase tracking-wider text-white/40 font-bold">Total Request Load</span>
+                        <span className="block text-sm font-black text-white mt-1">{serverHealth.network.requestCount.toLocaleString()}</span>
+                      </div>
+                      <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-3">
+                        <span className="block text-[8px] uppercase tracking-wider text-white/40 font-bold">Avg Response Time</span>
+                        <span className="block text-sm font-black text-emerald-400 mt-1">{serverHealth.network.responseTime}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* FUTURE SCOPE MONITORING ROADMAP */}
+                <div className="bg-slate-900 border border-white/10 p-6 rounded-3xl space-y-4">
+                  <h4 className="font-extrabold text-xs uppercase tracking-widest text-orange-500/60">
+                    🔍 Future Ready Logs Monitoring roadmap
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-6 gap-3 text-center">
+                    {[
+                      "Error Logs Viewer",
+                      "API Gateway Logs",
+                      "User activity trail",
+                      "Firebase usages",
+                      "S3 storage details",
+                      "Active Live Users"
+                    ].map((roadmap, idx) => (
+                      <div key={idx} className="bg-white/[0.01] border border-white/5 hover:border-orange-500/10 p-2.5 rounded-xl text-[10px] text-white/40 hover:text-white/70 transition-all font-semibold select-none cursor-help">
+                        {roadmap}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+            )}
           </div>
         )}
 
