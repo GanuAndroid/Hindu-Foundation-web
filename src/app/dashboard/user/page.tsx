@@ -236,14 +236,15 @@ export default function UserDashboard() {
       );
       return;
     }
-    if (formData.description.trim().length < 20) {
+    if (!formData.description || formData.description === "") {
       setFormError(
         language === "hi"
-          ? "कृपया चोट/स्थिति का अधिक विवरण दें (कम से कम 20 अक्षर)।"
-          : "Please provide a more detailed description of the injury (minimum 20 characters)."
+          ? "कृपया चोट का प्रकार (Accidental या Illness) चुनें।"
+          : "Please select an injury type (Accidental or Illness)."
       );
       return;
     }
+
     if (formData.animalType === "Other" && !formData.customAnimalType) {
       setFormError(
         language === "hi"
@@ -602,20 +603,17 @@ export default function UserDashboard() {
 
               {/* Case Description */}
               <div>
-                <div className="flex justify-between items-center mb-1.5">
-                  <label className="block text-xs font-bold text-white/60 uppercase">{t("user.description")}</label>
-                  <span className={`text-[10px] font-bold ${formData.description.length >= 20 ? "text-emerald-400" : "text-amber-400"}`}>
-                    {formData.description.length} characters (Min 20)
-                  </span>
-                </div>
-                <textarea
+                <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">{t("user.description")}</label>
+                <select
                   required
-                  rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder={t("user.placeholderDesc")}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white leading-relaxed"
-                />
+                  className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white"
+                >
+                  <option value="">{language === "hi" ? "-- चुनें (Select) --" : "-- Select --"}</option>
+                  <option value="Accidental">{language === "hi" ? "दुर्घटना (Accidental)" : "Accidental"}</option>
+                  <option value="Illness">{language === "hi" ? "बीमारी (Illness)" : "Illness"}</option>
+                </select>
               </div>
 
               <button

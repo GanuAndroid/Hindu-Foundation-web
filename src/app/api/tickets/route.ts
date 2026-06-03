@@ -73,8 +73,8 @@ export async function POST(req: NextRequest) {
     if (!latitude || !longitude) {
       return NextResponse.json({ error: "GPS Coordinates (Latitude & Longitude) are required." }, { status: 400 });
     }
-    if (!description || description.trim().length < 20) {
-      return NextResponse.json({ error: "Case description must be at least 20 characters long." }, { status: 400 });
+    if (!description || !["Accidental", "Illness"].includes(description)) {
+      return NextResponse.json({ error: "Case description must be either 'Accidental' or 'Illness'." }, { status: 400 });
     }
 
     const newTicket = await dbService.createTicket({
