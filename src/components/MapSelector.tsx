@@ -389,55 +389,85 @@ export default function MapSelector({
     setLng(calculatedLng);
     reverseGeocode(calculatedLat, calculatedLng);
   };
-
   const detectLocation = () => {
     if (readonly) return;
     setIsDetecting(true);
     
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const calculatedLat = parseFloat(position.coords.latitude.toFixed(6));
-          const calculatedLng = parseFloat(position.coords.longitude.toFixed(6));
-          
-          setLat(calculatedLat);
-          setLng(calculatedLng);
-          
-          if (googleMapInstRef.current && googleMarkerInstRef.current) {
-            const newPos = { lat: calculatedLat, lng: calculatedLng };
-            googleMapInstRef.current.setCenter(newPos);
-            googleMapInstRef.current.setZoom(16);
-            googleMarkerInstRef.current.setPosition(newPos);
-          }
-          
-          reverseGeocode(calculatedLat, calculatedLng);
-          setIsDetecting(false);
-        },
-        (error) => {
-          console.warn("Geolocation permission blocked/failed, using mock gps", error);
-          // Fallback to high quality mock GPS coordinates in Varanasi Cantt
-          setTimeout(() => {
-            const calculatedLat = parseFloat((25.3112 + Math.random() * 0.01).toFixed(6));
-            const calculatedLng = parseFloat((83.0078 + Math.random() * 0.01).toFixed(6));
-            
-            setLat(calculatedLat);
-            setLng(calculatedLng);
-            
-            if (googleMapInstRef.current && googleMarkerInstRef.current) {
-              const newPos = { lat: calculatedLat, lng: calculatedLng };
-              googleMapInstRef.current.setCenter(newPos);
-              googleMapInstRef.current.setZoom(15);
-              googleMarkerInstRef.current.setPosition(newPos);
-            }
-            
-            reverseGeocode(calculatedLat, calculatedLng);
-            setIsDetecting(false);
-          }, 1200);
-        }
+    if (!navigator.geolocation) {
+      alert(
+        isHindi
+          ? "आपके ब्राउज़र में जीपीएस डिटेक्शन उपलब्ध नहीं है। कृपया सुनिश्चित करें कि आप सुरक्षित (HTTPS) कनेक्शन का उपयोग कर रहे हैं या फोन सेटिंग्स में स्थान सक्षम है।"
+          : "Geolocation is not supported by your browser or requires a secure HTTPS connection. Please check your phone settings to enable location."
       );
-    } else {
       setIsDetecting(false);
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const calculatedLat = parseFloat(position.coords.latitude.toFixed(6));
+        const calculatedLng = parseFloat(position.coords.longitude.toFixed(6));
+        
+        setLat(calculatedLat);
+        setLng(calculatedLng);
+        
+        if (googleMapInstRef.current && googleMarkerInstRef.current) {
+          const newPos = { lat: calculatedLat, lng: calculatedLng };
+          googleMapInstRef.current.setCenter(newPos);
+          googleMapInstRef.current.setZoom(16);
+          googleMarkerInstRef.current.setPosition(newPos);
+        }
+        
+        reverseGeocode(calculatedLat, calculatedLng);
+        setIsDetecting(false);
+      },
+      (error) => {
+        console.warn("Geolocation failed:", error);
+        
+        // Explain error to user to help them enable permission or enable GPS
+        let errorMsg = isHindi
+          ? "जीपीएस सक्रिय करने में विफल। कृपया सेटिंग्स में लोकेशन अनुमति सक्षम करें।"
+          : "Failed to detect location. Please check your GPS settings and browser permissions.";
+          
+        if (error.code === error.PERMISSION_DENIED) {
+          errorMsg = isHindi
+            ? "लोकेशन अनुमति अस्वीकार कर दी गई है। कृपया ब्राउज़र/फ़ोन सेटिंग्स में स्थान अनुमति सक्षम करें।"
+            : "Location permission denied. Please allow location access in your browser/device settings.";
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          errorMsg = isHindi
+            ? "स्थान अनुपलब्ध है। कृपया सुनिश्चित करें कि आपके फ़ोन का जीपीएस (GPS) चालू है।"
+            : "Location services are unavailable. Please make sure your phone's GPS is turned on.";
+        } else if (error.code === error.TIMEOUT) {
+          errorMsg = isHindi
+            ? "लोकेशन अनुरोध का समय समाप्त (Timeout) हो गया। कृपया पुन: प्रयास करें।"
+            : "Location request timed out. Please try again.";
+        }
+        
+        alert(errorMsg);
+
+        // Fallback to high quality mock GPS coordinates in Varanasi Cantt
+        const calculatedLat = parseFloat((25.3112 + Math.random() * 0.01).toFixed(6));
+        const calculatedLng = parseFloat((83.0078 + Math.random() * 0.01).toFixed(6));
+        
+        setLat(calculatedLat);
+        setLng(calculatedLng);
+        
+        if (googleMapInstRef.current && googleMarkerInstRef.current) {
+          const newPos = { lat: calculatedLat, lng: calculatedLng };
+          googleMapInstRef.current.setCenter(newPos);
+          googleMapInstRef.current.setZoom(15);
+          googleMarkerInstRef.current.setPosition(newPos);
+        }
+        
+        reverseGeocode(calculatedLat, calculatedLng);
+        setIsDetecting(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
   };
 
   return (
