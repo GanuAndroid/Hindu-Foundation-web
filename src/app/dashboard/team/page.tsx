@@ -21,7 +21,9 @@ import {
   Camera,
   Info,
   X,
-  Video
+  Video,
+  MessageCircle,
+  Navigation
 } from "lucide-react";
 import { Ticket } from "@/lib/types";
 
@@ -730,6 +732,54 @@ export default function RescueTeamDashboard() {
 
             {/* Google Map selector */}
             <MapSelector onLocationSelect={() => {}} initialLat={activeTicket.latitude} initialLng={activeTicket.longitude} readonly={true} />
+
+            {/* Accepted Ticket - Reporter Details Box */}
+            {activeTicket.status === "Accepted" && (
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-4 shadow-xl">
+                <div className="flex items-center gap-2 mb-1">
+                  <User className="w-4 h-4 text-orange-500 animate-pulse" />
+                  <span className="text-[10px] uppercase font-extrabold tracking-wider text-orange-500">Citizen Reporter Contact Info</span>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center text-xs">
+                  <div>
+                    <span className="block text-[9px] text-white/40 font-bold uppercase">Reporter Name / नाम</span>
+                    <span className="font-extrabold text-white text-sm">{activeTicket.createdBy || "Citizen Reporter"}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[9px] text-white/40 font-bold uppercase">Mobile Number / मोबाइल</span>
+                    <span className="font-mono font-extrabold text-white text-sm">{activeTicket.creatorMobile || "7777777777"}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2.5 pt-1">
+                  <a
+                    href={`tel:${activeTicket.creatorMobile || "7777777777"}`}
+                    className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-colors shadow-md text-center border border-emerald-500/20 active:scale-95 cursor-pointer font-extrabold"
+                  >
+                    <Phone className="w-3.5 h-3.5" /> Call / कॉल
+                  </a>
+                  
+                  <a
+                    href={`https://wa.me/91${activeTicket.creatorMobile || "7777777777"}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-xl transition-colors shadow-md text-center border border-green-500/20 active:scale-95 cursor-pointer font-extrabold"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                  </a>
+
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${activeTicket.latitude},${activeTicket.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-xl transition-colors shadow-md text-center border border-orange-500/20 active:scale-95 cursor-pointer font-extrabold"
+                  >
+                    <Navigation className="w-3.5 h-3.5" /> Direction
+                  </a>
+                </div>
+              </div>
+            )}
 
             {/* Description quote card */}
             <div className="space-y-1">

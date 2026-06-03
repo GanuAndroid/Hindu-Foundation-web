@@ -100,6 +100,10 @@ export async function ensureDbInit(): Promise<void> {
         `);
 
         await pool.query(`
+          ALTER TABLE tickets ADD COLUMN IF NOT EXISTS creator_mobile VARCHAR(20) NOT NULL DEFAULT '';
+        `);
+
+        await pool.query(`
           CREATE TABLE IF NOT EXISTS ticket_histories (
             id VARCHAR(50) PRIMARY KEY,
             ticket_id VARCHAR(50) NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
@@ -273,6 +277,7 @@ function mapTicket(row: any): Ticket {
     assignedRescueTeamId: row.assigned_rescue_team_id || undefined,
     assignedRescueTeamName: row.assigned_rescue_team_name || undefined,
     createdBy: row.created_by,
+    creatorMobile: row.creator_mobile || "",
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : "",
     updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : "",
     acceptedAt: row.accepted_at ? new Date(row.accepted_at).toISOString() : undefined,
@@ -622,6 +627,7 @@ export const dbService = {
         assignedRescueTeamId: ticket.assignedRescueTeamId || undefined,
         assignedRescueTeamName: ticket.assignedRescueTeamName || undefined,
         createdBy: ticket.createdBy || "Citizen Reporter",
+        creatorMobile: ticket.creatorMobile || "",
         createdAt: now,
         updatedAt: now,
       };
@@ -650,8 +656,8 @@ export const dbService = {
       `INSERT INTO tickets (
         id, event_id, animal_type, custom_animal_type, description, image_url, video_url,
         latitude, longitude, status, assigned_rescue_team_id, assigned_rescue_team_name,
-        created_by, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
+        created_by, creator_mobile, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING *`,
       [
         newId,
         ticket.eventId || "112",
@@ -666,6 +672,7 @@ export const dbService = {
         ticket.assignedRescueTeamId || null,
         ticket.assignedRescueTeamName || null,
         ticket.createdBy || "Citizen Reporter",
+        ticket.creatorMobile || "",
         now,
         now,
       ]

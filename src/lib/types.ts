@@ -37,6 +37,7 @@ export interface Ticket {
   assignedRescueTeamId?: string; // Links to RescueTeam.id
   assignedRescueTeamName?: string; // Display cache
   createdBy: string; // User.mobile or User.name
+  creatorMobile?: string;
   createdAt: string;
   updatedAt: string;
   acceptedAt?: string; // Time team accepted the ticket

@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
       latitude,
       longitude,
       createdBy,
+      creatorMobile,
     } = body;
 
     // Enforce validations
@@ -87,6 +88,7 @@ export async function POST(req: NextRequest) {
       latitude: Number(latitude),
       longitude: Number(longitude),
       createdBy: createdBy || "Citizen Reporter",
+      creatorMobile: creatorMobile || "",
     });
 
     // Trigger Notification Event

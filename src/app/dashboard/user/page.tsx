@@ -299,6 +299,7 @@ export default function UserDashboard() {
         body: JSON.stringify({
           ...formData,
           createdBy: user?.name || "Citizen Reporter",
+          creatorMobile: user?.mobile || "",
         }),
       });
 
