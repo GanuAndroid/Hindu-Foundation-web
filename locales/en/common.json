@@ -361,8 +361,9 @@
       "pendingStatus": "Pending Approval",
       "emptyProofs": "No pending donation proofs requiring audit.",
       "confirmVerify": "Are you sure you want to approve and verify this donation proof?"
-    },
-    "permissions": {
+    }
+  },
+  "permissions": {
       "locationTitle": "Location Permission Required",
       "locationMessage": "Location access is required to create an animal rescue request. Please enable location permission from your browser settings.",
       "cameraTitle": "Camera Permission Required",
@@ -389,6 +390,5 @@
       "stepGeneric1": "1. Click the lock/site settings icon in browser URL bar",
       "stepGeneric2": "2. Ensure Location/Camera permissions are set to Allow",
       "stepGeneric3": "3. Refresh the page to apply changes"
-    }
   }
 }
