@@ -361,6 +361,34 @@
       "pendingStatus": "सत्यापन लंबित",
       "emptyProofs": "ऑडिट के लिए कोई लंबित दान प्रमाण नहीं है।",
       "confirmVerify": "क्या आप वाकई इस दान प्रमाण को स्वीकृत और सत्यापित करना चाहते हैं?"
+    },
+    "permissions": {
+      "locationTitle": "स्थान अनुमति आवश्यक है",
+      "locationMessage": "पशु बचाव अनुरोध बनाने के लिए स्थान अनुमति आवश्यक है। कृपया ब्राउज़र सेटिंग से स्थान अनुमति चालू करें।",
+      "cameraTitle": "कैमरा अनुमति आवश्यक है",
+      "cameraMessage": "पशु की फ़ोटो खींचने के लिए कैमरा अनुमति आवश्यक है। कृपया ब्राउज़र सेटिंग से कैमरा अनुमति चालू करें।",
+      "btnEnabled": "मैंने अनुमति चालू कर दी है",
+      "btnRefresh": "पेज रिफ्रेश करें",
+      "successToast": "अनुमति सफलतापूर्वक सक्षम की गई",
+      "errorToast": "कृपया मैन्युअल रूप से अनुमति सक्षम करें",
+      "instructionsTitle": "अनुमति कैसे चालू करें:",
+      "stepChromeDesktop1": "1. वेबसाइट एड्रेस के पास 🔒 लॉक आइकन दबाएं",
+      "stepChromeDesktop2": "2. Site Settings खोलें",
+      "stepChromeDesktop3": "3. Location/Camera को Allow करें",
+      "stepChromeDesktop4": "4. पेज Refresh करें",
+      "stepChromeAndroid1": "1. Chrome मेनू ⋮ खोलें",
+      "stepChromeAndroid2": "2. Settings में जाएं",
+      "stepChromeAndroid3": "3. Site Settings खोलें",
+      "stepChromeAndroid4": "4. Location/Camera पर जाएं",
+      "stepChromeAndroid5": "5. इस वेबसाइट को चुनें",
+      "stepChromeAndroid6": "6. Location/Camera को Allow करें",
+      "stepSafariiOS1": "1. अपने आईफोन की Settings ऐप खोलें",
+      "stepSafariiOS2": "2. Safari ➔ Location/Camera दबाएं",
+      "stepSafariiOS3": "3. Website Access के अंतर्गत Ask या Allow चुनें",
+      "stepSafariiOS4": "4. वेबसाइट पेज को दोबारा लोड करें",
+      "stepGeneric1": "1. अपने ब्राउज़र URL बार में साइट सेटिंग्स/लॉक आइकन पर क्लिक करें",
+      "stepGeneric2": "2. सुनिश्चित करें कि स्थान और कैमरा अनुमतियों को अनुमति (Allow) पर सेट किया गया है",
+      "stepGeneric3": "3. सेटिंग्स लागू करने के लिए पेज को दोबारा लोड करें"
     }
   }
 }

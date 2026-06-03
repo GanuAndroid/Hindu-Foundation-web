@@ -361,6 +361,34 @@
       "pendingStatus": "Pending Approval",
       "emptyProofs": "No pending donation proofs requiring audit.",
       "confirmVerify": "Are you sure you want to approve and verify this donation proof?"
+    },
+    "permissions": {
+      "locationTitle": "Location Permission Required",
+      "locationMessage": "Location access is required to create an animal rescue request. Please enable location permission from your browser settings.",
+      "cameraTitle": "Camera Permission Required",
+      "cameraMessage": "Camera access is required to capture an animal photo. Please enable camera permission from your browser settings.",
+      "btnEnabled": "I Have Enabled Permission",
+      "btnRefresh": "Refresh Page",
+      "successToast": "Permission enabled successfully",
+      "errorToast": "Please enable permission manually",
+      "instructionsTitle": "How to allow permission:",
+      "stepChromeDesktop1": "1. Click the 🔒 lock icon near website address",
+      "stepChromeDesktop2": "2. Click Site Settings",
+      "stepChromeDesktop3": "3. Change Location/Camera permission to Allow",
+      "stepChromeDesktop4": "4. Refresh this page",
+      "stepChromeAndroid1": "1. Open Chrome menu ⋮",
+      "stepChromeAndroid2": "2. Settings",
+      "stepChromeAndroid3": "3. Site Settings",
+      "stepChromeAndroid4": "4. Location/Camera",
+      "stepChromeAndroid5": "5. Select this website",
+      "stepChromeAndroid6": "6. Allow Location/Camera",
+      "stepSafariiOS1": "1. Open iPhone Settings app",
+      "stepSafariiOS2": "2. Tap Safari ➔ Location/Camera",
+      "stepSafariiOS3": "3. Choose Ask or Allow under Website Access",
+      "stepSafariiOS4": "4. Reload the website page",
+      "stepGeneric1": "1. Click the lock/site settings icon in browser URL bar",
+      "stepGeneric2": "2. Ensure Location/Camera permissions are set to Allow",
+      "stepGeneric3": "3. Refresh the page to apply changes"
     }
   }
 }

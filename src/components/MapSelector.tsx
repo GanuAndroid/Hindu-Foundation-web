@@ -16,6 +16,7 @@ interface MapSelectorProps {
   initialLat?: number;
   initialLng?: number;
   readonly?: boolean;
+  onPermissionDenied?: (type: "location" | "camera") => void;
 }
 
 // Gorgeous dark-themed map custom styles matching the deep navy/orange application aesthetics
@@ -173,6 +174,7 @@ export default function MapSelector({
   initialLat = 28.6139,
   initialLng = 77.2090,
   readonly = false,
+  onPermissionDenied,
 }: MapSelectorProps) {
   const { language } = useLanguage();
   const isHindi = language === "hi";
@@ -379,10 +381,10 @@ export default function MapSelector({
     const y = e.clientY - rect.top;
 
     const xRatio = Math.max(0, Math.min(1, x / rect.width));
-    const yRatio = Math.max(0, Math.min(1, y / rect.top));
+    const yRatio = Math.max(0, Math.min(1, y / rect.height));
 
-    const calculatedLat = parseFloat((25.28 + (1 - yRatio) * 0.08).toFixed(6));
-    const calculatedLng = parseFloat((82.94 + xRatio * 0.09).toFixed(6));
+    const calculatedLat = parseFloat((28.50 + (1 - yRatio) * 0.20).toFixed(6));
+    const calculatedLng = parseFloat((77.10 + xRatio * 0.20).toFixed(6));
     
     setLat(calculatedLat);
     setLng(calculatedLng);
@@ -447,7 +449,24 @@ export default function MapSelector({
         alert(errorMsg);
 
         if (isPermissionDenied) {
-          window.location.href = "https://support.google.com/chrome/answer/142065";
+          if (onPermissionDenied) {
+            onPermissionDenied("location");
+          }
+          // Fallback to high quality mock GPS coordinates in New Delhi (Connaught Place)
+          const calculatedLat = parseFloat((28.6139 + Math.random() * 0.01).toFixed(6));
+          const calculatedLng = parseFloat((77.2090 + Math.random() * 0.01).toFixed(6));
+          
+          setLat(calculatedLat);
+          setLng(calculatedLng);
+          
+          if (googleMapInstRef.current && googleMarkerInstRef.current) {
+            const newPos = { lat: calculatedLat, lng: calculatedLng };
+            googleMapInstRef.current.setCenter(newPos);
+            googleMapInstRef.current.setZoom(15);
+            googleMarkerInstRef.current.setPosition(newPos);
+          }
+          
+          reverseGeocode(calculatedLat, calculatedLng);
           setIsDetecting(false);
           return;
         }
@@ -552,14 +571,14 @@ export default function MapSelector({
             <div className="absolute bottom-10 right-20 w-32 h-20 bg-emerald-700/20 rounded-full blur-lg pointer-events-none" />
 
             {/* Map Labels */}
-            <div className="absolute top-6 left-12 text-[10px] font-black text-emerald-400 opacity-60">Sarnath Wildlife Park</div>
-            <div className="absolute bottom-12 right-24 text-[10px] font-black text-blue-400 opacity-60">Ganges River (Holy Ganga)</div>
-            <div className="absolute top-1/2 left-1/3 text-[10px] font-black text-white/40">Varanasi Cantt Highway</div>
+            <div className="absolute top-6 left-12 text-[10px] font-black text-emerald-400 opacity-60">Asola Bhatti Wildlife Sanctuary</div>
+            <div className="absolute bottom-12 right-24 text-[10px] font-black text-blue-400 opacity-60">Yamuna River</div>
+            <div className="absolute top-1/2 left-1/3 text-[10px] font-black text-white/40">Delhi Cantt Highway</div>
 
             {/* Map Pin Marker */}
             {(() => {
-              const markerY = Math.max(0, Math.min(100, (1 - (lat - 25.28) / 0.08) * 100));
-              const markerX = Math.max(0, Math.min(100, ((lng - 82.94) / 0.09) * 100));
+              const markerY = Math.max(0, Math.min(100, (1 - (lat - 28.50) / 0.20) * 100));
+              const markerX = Math.max(0, Math.min(100, ((lng - 77.10) / 0.20) * 100));
               return (
                 <div
                   style={{

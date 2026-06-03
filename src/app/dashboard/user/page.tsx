@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import MapSelector from "@/components/MapSelector";
+import { useBrowserPermission } from "@/hooks/useBrowserPermission";
+import PermissionDeniedDialog from "@/components/PermissionDeniedDialog";
 import {
   Plus,
   AlertCircle,
@@ -37,6 +39,16 @@ export default function UserDashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Browser permissions management
+  const { permissions, checkAll } = useBrowserPermission();
+  const [permissionDialog, setPermissionDialog] = useState<{
+    isOpen: boolean;
+    type: "location" | "camera";
+  }>({
+    isOpen: false,
+    type: "location",
+  });
 
   // Premium media lightbox states
   const [activeLightbox, setActiveLightbox] = useState<{ url: string; type: "image" | "video" } | null>(null);
@@ -228,11 +240,36 @@ export default function UserDashboard() {
       setFormError(t("user.emptyEventIdError"));
       return;
     }
+
+    // Query current permission states on submit
+    const currentPerms = await checkAll();
+
+    // 1. Enforce location permission check
+    if (currentPerms.location === "denied") {
+      setPermissionDialog({ isOpen: true, type: "location" });
+      return;
+    }
+
+    // 2. Enforce photo proof check
     if (!formData.imageUrl) {
+      if (currentPerms.camera === "denied") {
+        setPermissionDialog({ isOpen: true, type: "camera" });
+      } else {
+        setFormError(
+          language === "hi"
+            ? "कृपया कम से कम एक फ़ोटो प्रमाण अपलोड करें।"
+            : "Please upload at least one photo proof."
+        );
+      }
+      return;
+    }
+
+    // 3. Enforce video proof check
+    if (!formData.videoUrl) {
       setFormError(
         language === "hi"
-          ? "कृपया कम से कम एक फ़ोटो प्रमाण अपलोड करें।"
-          : "Please upload at least one photo proof."
+          ? "कृपया कम से कम एक वीडियो प्रमाण अपलोड करें।"
+          : "Please upload a video proof."
       );
       return;
     }
@@ -599,7 +636,12 @@ export default function UserDashboard() {
               </div>
 
               {/* Simulated Google Maps Pin Coordinates Selector */}
-              <MapSelector onLocationSelect={handleLocationSelect} />
+              <MapSelector
+                onLocationSelect={handleLocationSelect}
+                onPermissionDenied={(type) => {
+                  setPermissionDialog({ isOpen: true, type });
+                }}
+              />
 
               {/* Case Description */}
               <div>
@@ -857,6 +899,15 @@ export default function UserDashboard() {
           </p>
         </div>
       )}
+
+      <PermissionDeniedDialog
+        isOpen={permissionDialog.isOpen}
+        type={permissionDialog.type}
+        onClose={() => setPermissionDialog(prev => ({ ...prev, isOpen: false }))}
+        onPermissionGranted={() => {
+          checkAll();
+        }}
+      />
     </div>
   );
 }
