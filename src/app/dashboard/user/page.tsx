@@ -58,9 +58,9 @@ export default function UserDashboard() {
     description: "",
     imageUrl: "",
     videoUrl: "",
-    latitude: 25.3176,
-    longitude: 82.9739,
-    address: "Varanasi, Uttar Pradesh",
+    latitude: 28.6139,
+    longitude: 77.2090,
+    address: "New Delhi, Delhi",
   });
 
   // Redirect if not user role
@@ -275,9 +275,9 @@ export default function UserDashboard() {
           description: "",
           imageUrl: "",
           videoUrl: "",
-          latitude: 25.3176,
-          longitude: 82.9739,
-          address: "Varanasi, Uttar Pradesh",
+          latitude: 28.6139,
+          longitude: 77.2090,
+          address: "New Delhi, Delhi",
         });
         setPhotoFile(null);
         setVideoFile(null);

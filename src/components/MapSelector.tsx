@@ -168,11 +168,10 @@ const darkMapStyles = [
     ]
   }
 ];
-
 export default function MapSelector({
   onLocationSelect,
-  initialLat = 25.3176,
-  initialLng = 82.9739,
+  initialLat = 28.6139,
+  initialLng = 77.2090,
   readonly = false,
 }: MapSelectorProps) {
   const { language } = useLanguage();
@@ -193,7 +192,7 @@ export default function MapSelector({
 
   const [lat, setLat] = useState(initialLat);
   const [lng, setLng] = useState(initialLng);
-  const [address, setAddress] = useState("Varanasi Cantt, Varanasi, Uttar Pradesh 221002");
+  const [address, setAddress] = useState("Connaught Place, New Delhi, Delhi 110001");
   const [isDetecting, setIsDetecting] = useState(false);
   const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -205,13 +204,13 @@ export default function MapSelector({
 
   // Addresses mock mapping based on grid quadrant (for offline/no-api-key backup fallback)
   const getMockAddress = (xRatio: number, yRatio: number) => {
-    const sectors = ["Viswanath Corridor", "Bypass highway", "Ghats road", "Assi Ghat sector", "Sarnath Wildlife periphery", "Godowlia Market district"];
-    const landmarks = ["Shree Mandir Gate 3", "Toll Plaza Highway Km 12", "Ramnagar Fort outer crossing", "Cantonment Park side", "Sanskriti Bhawan"];
+    const sectors = ["Connaught Place", "Karol Bagh", "Dwarka sector 6", "Chanakyapuri", "Rohini sector 3", "Chandni Chowk district"];
+    const landmarks = ["Metro Station Gate 1", "Outer Ring Road Crossing", "Red Fort Outer crossing", "District Park Side", "Civic Center Building"];
     
     const secIdx = Math.max(0, Math.min(sectors.length - 1, Math.floor(xRatio * sectors.length)));
     const lmkIdx = Math.max(0, Math.min(landmarks.length - 1, Math.floor(yRatio * landmarks.length)));
     
-    return `${landmarks[lmkIdx]}, ${sectors[secIdx]}, Varanasi, UP - ${221000 + Math.floor(1 + xRatio * 9)}`;
+    return `${landmarks[lmkIdx]}, ${sectors[secIdx]}, New Delhi, Delhi - ${110000 + Math.floor(1 + xRatio * 99)}`;
   };
 
   // Google Maps Dynamic Script Injector
@@ -260,7 +259,7 @@ export default function MapSelector({
     if (window.google && window.google.maps) {
       const geocoder = new window.google.maps.Geocoder();
       geocoder.geocode({ location: { lat: latitude, lng: longitude } }, (results: any, status: any) => {
-        let addr = `Varanasi Incident Grid (${latitude}, ${longitude})`;
+        let addr = `New Delhi Incident Grid (${latitude}, ${longitude})`;
         if (status === "OK" && results && results[0]) {
           addr = results[0].formatted_address;
         }
@@ -268,8 +267,8 @@ export default function MapSelector({
         onLocationSelect(latitude, longitude, addr);
       });
     } else {
-      const xRatio = Math.max(0, Math.min(1, (longitude - 82.94) / 0.09));
-      const yRatio = Math.max(0, Math.min(1, 1 - (latitude - 25.28) / 0.08));
+      const xRatio = Math.max(0, Math.min(1, (longitude - 77.10) / 0.20));
+      const yRatio = Math.max(0, Math.min(1, 1 - (latitude - 28.50) / 0.20));
       const addr = getMockAddress(xRatio, yRatio);
       setAddress(addr);
       onLocationSelect(latitude, longitude, addr);
@@ -424,12 +423,14 @@ export default function MapSelector({
       (error) => {
         console.warn("Geolocation failed:", error);
         
-        // Explain error to user to help them enable permission or enable GPS
         let errorMsg = isHindi
           ? "जीपीएस सक्रिय करने में विफल। कृपया सेटिंग्स में लोकेशन अनुमति सक्षम करें।"
           : "Failed to detect location. Please check your GPS settings and browser permissions.";
-          
+        
+        let isPermissionDenied = false;
+
         if (error.code === error.PERMISSION_DENIED) {
+          isPermissionDenied = true;
           errorMsg = isHindi
             ? "लोकेशन अनुमति अस्वीकार कर दी गई है। कृपया ब्राउज़र/फ़ोन सेटिंग्स में स्थान अनुमति सक्षम करें।"
             : "Location permission denied. Please allow location access in your browser/device settings.";
@@ -445,9 +446,15 @@ export default function MapSelector({
         
         alert(errorMsg);
 
-        // Fallback to high quality mock GPS coordinates in Varanasi Cantt
-        const calculatedLat = parseFloat((25.3112 + Math.random() * 0.01).toFixed(6));
-        const calculatedLng = parseFloat((83.0078 + Math.random() * 0.01).toFixed(6));
+        if (isPermissionDenied) {
+          window.location.href = "https://support.google.com/chrome/answer/142065";
+          setIsDetecting(false);
+          return;
+        }
+
+        // Fallback to high quality mock GPS coordinates in New Delhi (Connaught Place)
+        const calculatedLat = parseFloat((28.6139 + Math.random() * 0.01).toFixed(6));
+        const calculatedLng = parseFloat((77.2090 + Math.random() * 0.01).toFixed(6));
         
         setLat(calculatedLat);
         setLng(calculatedLng);
