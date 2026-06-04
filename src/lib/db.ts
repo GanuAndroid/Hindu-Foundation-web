@@ -1128,4 +1128,36 @@ export const dbService = {
     if ((res.rowCount ?? 0) === 0) return undefined;
     return mapDonation(res.rows[0]);
   },
+
+  async deleteMediaReference(url: string): Promise<void> {
+    await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      if (db.tickets) {
+        db.tickets = db.tickets.map((t: any) => {
+          let updated = false;
+          const updates: any = {};
+          if (t.imageUrl === url) { updates.imageUrl = ""; updated = true; }
+          if (t.videoUrl === url) { updates.videoUrl = ""; updated = true; }
+          if (t.closurePhotoUrl === url) { updates.closurePhotoUrl = ""; updated = true; }
+          return updated ? { ...t, ...updates } : t;
+        });
+      }
+      if (db.donations) {
+        db.donations = db.donations.map((d: any) => {
+          if (d.screenshotUrl === url) {
+            return { ...d, screenshotUrl: "" };
+          }
+          return d;
+        });
+      }
+      writeLocalJsonDb(db);
+      return;
+    }
+
+    await pool.query("UPDATE tickets SET image_url = '' WHERE image_url = $1", [url]);
+    await pool.query("UPDATE tickets SET video_url = '' WHERE video_url = $1", [url]);
+    await pool.query("UPDATE tickets SET closure_photo_url = '' WHERE closure_photo_url = $1", [url]);
+    await pool.query("UPDATE donations SET screenshot_url = '' WHERE screenshot_url = $1", [url]);
+  }
 };

@@ -80,8 +80,16 @@ export default function AdminDashboard() {
   const [selectedTicketTab, setSelectedTicketTab] = useState<"All" | "Pending" | "Accepted" | "Closed">("All");
 
   // Tab navigation states
-  const [activeTab, setActiveTab] = useState<"terminal" | "teams" | "members" | "users" | "donations" | "proofs" | "reports" | "monitor">("terminal");
+  const [activeTab, setActiveTab] = useState<"terminal" | "teams" | "members" | "users" | "donations" | "proofs" | "reports" | "monitor" | "media">("terminal");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Media Manager States
+  const [mediaItems, setMediaItems] = useState<any[]>([]);
+  const [mediaCategoryFilter, setMediaCategoryFilter] = useState("all");
+  const [mediaSearchQuery, setMediaSearchQuery] = useState("");
+  const [isMediaLoading, setIsMediaLoading] = useState(false);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [deletingMediaUrl, setDeletingMediaUrl] = useState<string | null>(null);
   
   // User tab search & CRUD states
   const [userSearch, setUserSearch] = useState("");
@@ -171,9 +179,53 @@ export default function AdminDashboard() {
     }
   };
 
+  // Fetch Media Manager Assets
+  const fetchMedia = async () => {
+    setIsMediaLoading(true);
+    setMediaError(null);
+    try {
+      const res = await fetch("/api/media");
+      const data = await res.json();
+      if (data.success) {
+        setMediaItems(data.media || []);
+      } else {
+        setMediaError(data.error || "Failed to load media items");
+      }
+    } catch (err: any) {
+      setMediaError(err.message || "Failed to communicate with media server");
+    } finally {
+      setIsMediaLoading(false);
+    }
+  };
+
+  const handleDeleteMedia = async (url: string) => {
+    try {
+      const res = await fetch(`/api/media?url=${encodeURIComponent(url)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success) {
+        await fetchMedia();
+        await loadAdminData();
+      } else {
+        alert(data.error || "Failed to delete media item");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to connect to media server");
+    } finally {
+      setDeletingMediaUrl(null);
+    }
+  };
+
   useEffect(() => {
     loadAdminData();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === "media") {
+      fetchMedia();
+    }
+  }, [activeTab]);
 
   // Fetch Server Health Statistics
   const fetchServerHealth = async (silent = false) => {
@@ -575,6 +627,16 @@ export default function AdminDashboard() {
     return matchesSearch && matchesTeamFilter;
   });
 
+  // Filtered Media items
+  const filteredMediaItems = mediaItems.filter((item) => {
+    const matchesCategory = mediaCategoryFilter === "all" ? true : item.category === mediaCategoryFilter;
+    const q = mediaSearchQuery.toLowerCase();
+    const matchesSearch = item.fileName.toLowerCase().includes(q) ||
+                          (item.associatedId && item.associatedId.toLowerCase().includes(q)) ||
+                          (item.associatedName && item.associatedName.toLowerCase().includes(q));
+    return matchesCategory && matchesSearch;
+  });
+
   // Calculate Metrics
   const totalDonationVal = verifiedDonations.reduce((sum, d) => sum + d.amount, 0) + 1540250;
   const activeTeamsCount = teams.filter((t) => t.status === "Active").length;
@@ -633,6 +695,7 @@ export default function AdminDashboard() {
               { id: "users", label: language === "hi" ? "उपयोगकर्ता प्रबंधन" : "User Management", icon: UserIcon },
               { id: "donations", label: language === "hi" ? "दान बहीखाता (Ledger)" : "Donations Ledger", icon: DollarSign },
               { id: "proofs", label: language === "hi" ? "ऑफ़लाइन दान ऑडिट" : "Offline Donation Proofs", icon: ShieldCheck },
+              { id: "media", label: language === "hi" ? "मीडिया मैनेजर" : "Media Manager", icon: FileImage },
               { id: "reports", label: language === "hi" ? "सभी विश्लेषण रिपोर्ट" : "All Reports", icon: Heart },
               { id: "monitor", label: language === "hi" ? "सर्वर मॉनिटर" : "Server Monitor", icon: Server }
             ].map((tab) => {
@@ -699,6 +762,7 @@ export default function AdminDashboard() {
               {activeTab === "proofs" && (language === "hi" ? "ऑफ़लाइन दान ऑडिट" : "Offline Donation Proofs")}
               {activeTab === "reports" && (language === "hi" ? "सभी विश्लेषण रिपोर्ट" : "All Reports")}
               {activeTab === "monitor" && (language === "hi" ? "सर्वर मॉनिटर" : "Server Monitor")}
+              {activeTab === "media" && (language === "hi" ? "मीडिया मैनेजर" : "Media Manager")}
             </h1>
             <p className="text-xs text-white/50">{t("admin.portalSubtitle")}</p>
           </div>
@@ -1804,6 +1868,191 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* VIEW: MEDIA MANAGER (TAB VIEW) */}
+        {activeTab === "media" && (
+          <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/5 pb-4">
+              <h3 className="font-extrabold text-lg flex items-center gap-2">
+                <FileImage className="w-5 h-5 text-orange-400" />
+                {language === "hi" ? "मीडिया मैनेजर" : "Media Manager"}
+              </h3>
+              
+              <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto items-stretch sm:items-center">
+                {/* Category Dropdown Filter */}
+                <div className="relative flex-grow sm:w-56">
+                  <select
+                    value={mediaCategoryFilter}
+                    onChange={(e) => setMediaCategoryFilter(e.target.value)}
+                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500 font-bold cursor-pointer"
+                  >
+                    <option value="all">{language === "hi" ? "सभी मीडिया" : "All Media"}</option>
+                    <option value="incident_image">{language === "hi" ? "घटना की तस्वीरें" : "Incident Images"}</option>
+                    <option value="incident_video">{language === "hi" ? "घटना के वीडियो" : "Incident Videos"}</option>
+                    <option value="donation_proof">{language === "hi" ? "दान के प्रमाण" : "Donation Proofs"}</option>
+                    <option value="closure_photo">{language === "hi" ? "केस बंद होने की तस्वीरें" : "Closure Photos"}</option>
+                    <option value="unlinked">{language === "hi" ? "अनाथ फ़ाइलें (Orphaned)" : "Orphaned Files"}</option>
+                  </select>
+                </div>
+
+                {/* Search Box */}
+                <div className="relative flex-grow sm:w-60">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/40" />
+                  <input
+                    type="text"
+                    placeholder={language === "hi" ? "फ़ाइल या आईडी खोजें..." : "Search filename, case ID..."}
+                    value={mediaSearchQuery}
+                    onChange={(e) => setMediaSearchQuery(e.target.value)}
+                    className="w-full bg-slate-950 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Metrics Banner */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 text-center">
+                <span className="text-[10px] text-white/40 uppercase font-extrabold tracking-wider block mb-1">
+                  {language === "hi" ? "कुल फाइलें" : "Total Assets"}
+                </span>
+                <span className="text-xl font-black text-white">{mediaItems.length}</span>
+              </div>
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 text-center">
+                <span className="text-[10px] text-white/40 uppercase font-extrabold tracking-wider block mb-1">
+                  {language === "hi" ? "अनाथ फाइलें" : "Orphaned Files"}
+                </span>
+                <span className="text-xl font-black text-orange-400">
+                  {mediaItems.filter(m => m.category === "unlinked").length}
+                </span>
+              </div>
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 text-center">
+                <span className="text-[10px] text-white/40 uppercase font-extrabold tracking-wider block mb-1">
+                  {language === "hi" ? "कुल स्थान" : "Total Disk Space"}
+                </span>
+                <span className="text-xl font-black text-white">
+                  {(mediaItems.reduce((sum, m) => sum + m.sizeBytes, 0) / (1024 * 1024)).toFixed(2)} MB
+                </span>
+              </div>
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 text-center">
+                <span className="text-[10px] text-white/40 uppercase font-extrabold tracking-wider block mb-1">
+                  {language === "hi" ? "वीडियो क्लिप्स" : "Video Clips"}
+                </span>
+                <span className="text-xl font-black text-white">
+                  {mediaItems.filter(m => m.fileType === "video").length}
+                </span>
+              </div>
+            </div>
+
+            {/* Error or Loading */}
+            {isMediaLoading ? (
+              <div className="text-center py-20 text-xs text-white/40 animate-pulse">
+                {language === "hi" ? "मीडिया फ़ाइलें लोड हो रही हैं..." : "Loading media resources..."}
+              </div>
+            ) : mediaError ? (
+              <div className="text-center py-20 text-xs text-red-400 bg-red-500/5 border border-red-500/10 rounded-2xl">
+                {mediaError}
+              </div>
+            ) : filteredMediaItems.length === 0 ? (
+              <div className="text-center py-20 text-xs text-white/40 bg-white/[0.02] border border-white/5 rounded-2xl">
+                {language === "hi" ? "कोई मीडिया फ़ाइल नहीं मिली।" : "No media files found matching the criteria."}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {filteredMediaItems.map((item, idx) => {
+                  const sizeStr = (item.sizeBytes / 1024).toFixed(1) + " KB";
+                  const uploadDate = new Date(item.uploadedAt).toLocaleDateString();
+                  
+                  return (
+                    <div 
+                      key={idx}
+                      className="group bg-white/[0.02] border border-white/10 hover:border-orange-500/20 rounded-2xl overflow-hidden transition-all duration-300 flex flex-col justify-between"
+                    >
+                      {/* Media Preview Container */}
+                      <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden cursor-pointer"
+                           onClick={() => setActiveLightbox({ url: item.url, type: item.fileType })}>
+                        {item.fileType === "image" ? (
+                          <img 
+                            src={item.url} 
+                            alt={item.fileName}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className="relative w-full h-full flex items-center justify-center bg-slate-950">
+                            <video src={item.url} className="w-full h-full object-cover opacity-60 pointer-events-none" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="p-3 bg-orange-500 rounded-full text-white shadow-lg">
+                                <Video className="w-5 h-5" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Type Tag */}
+                        <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/60 backdrop-blur-md text-[8px] uppercase tracking-wider text-white/90 font-black">
+                          {item.fileType}
+                        </div>
+                      </div>
+
+                      {/* Info & Metadata Panel */}
+                      <div className="p-4 space-y-3 flex-grow flex flex-col justify-between">
+                        <div>
+                          <p className="text-[11px] font-black text-white truncate" title={item.fileName}>
+                            {item.fileName}
+                          </p>
+                          <div className="flex justify-between items-center text-[9px] text-white/40 mt-1 font-bold">
+                            <span>{uploadDate}</span>
+                            <span>{sizeStr}</span>
+                          </div>
+                        </div>
+
+                        {/* Associated Case/Donation Reference */}
+                        <div className="pt-2 border-t border-white/5 flex justify-between items-center gap-2">
+                          {item.associatedId ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (item.category === "donation_proof") {
+                                  setActiveTab("proofs");
+                                } else {
+                                  setActiveTab("terminal");
+                                  setTicketSearch(item.associatedId);
+                                }
+                              }}
+                              className="text-[9px] px-2 py-1 rounded-lg bg-orange-500/10 text-orange-400 font-extrabold hover:bg-orange-500/20 transition-all text-left truncate flex-grow"
+                            >
+                              {item.category === "donation_proof" ? `Donation Proof` : `Case #${item.associatedId}`}
+                            </button>
+                          ) : (
+                            <span className="text-[9px] px-2 py-1 rounded-lg bg-red-500/10 text-red-400 font-extrabold">
+                              {language === "hi" ? "अनाथ (Unlinked)" : "Orphaned"}
+                            </span>
+                          )}
+
+                          {/* Delete Action button */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm(language === "hi" 
+                                ? "क्या आप वाकई इस फ़ाइल को स्थायी रूप से हटाना चाहते हैं? यह इसे सर्वर से हटा देगा।"
+                                : "Are you sure you want to permanently delete this media file? This will remove it from the server."
+                              )) {
+                                handleDeleteMedia(item.url);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-colors"
+                            title="Delete Media"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
