@@ -1,5 +1,5 @@
 import { Pool } from "pg";
-import { User, RescueTeam, Ticket, TicketHistory, Donation, TicketStatus } from "./types";
+import { User, RescueTeam, TeamMember, Ticket, TicketHistory, Donation, TicketStatus } from "./types";
 import fs from "fs";
 import path from "path";
 import dns from "dns";
@@ -43,6 +43,35 @@ let initPromise: Promise<void> | null = null;
 export async function ensureDbInit(): Promise<void> {
   if (!initPromise) {
     initPromise = (async () => {
+      // Local JSON DB migration
+      try {
+        const db = readLocalJsonDb();
+        if (db && db.rescueTeams && (!db.teamMembers || db.teamMembers.length === 0)) {
+          console.log("[JSON MIGRATION] Migrating local JSON rescue teams to team members...");
+          db.teamMembers = [];
+          for (const team of db.rescueTeams) {
+            db.teamMembers.push({
+              id: `mem-${team.id}`,
+              teamId: team.id,
+              teamName: team.name,
+              memberName: `${team.name} Leader`,
+              mobileNumber: team.mobile,
+              email: team.email,
+              city: team.city,
+              state: team.state,
+              status: team.status,
+              role: "RESCUE_TEAM",
+              createdAt: team.createdAt || new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            });
+          }
+          writeLocalJsonDb(db);
+          console.log("[JSON MIGRATION] Successfully migrated local JSON rescue teams to members.");
+        }
+      } catch (err) {
+        console.error("Local JSON migration error:", err);
+      }
+
       try {
         console.log("Probing cloud PostgreSQL database connection...");
         const client = await pool.connect();
@@ -113,6 +142,56 @@ export async function ensureDbInit(): Promise<void> {
             created_at TIMESTAMP NOT NULL DEFAULT NOW()
           );
         `);
+
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS team_members (
+            id VARCHAR(50) PRIMARY KEY,
+            team_id VARCHAR(50) NOT NULL REFERENCES rescue_teams(id) ON DELETE CASCADE,
+            team_name VARCHAR(100) NOT NULL,
+            member_name VARCHAR(100) NOT NULL,
+            mobile_number VARCHAR(20) NOT NULL UNIQUE,
+            email VARCHAR(100),
+            city VARCHAR(100) NOT NULL,
+            state VARCHAR(100) NOT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'Active',
+            role VARCHAR(20) NOT NULL DEFAULT 'RESCUE_TEAM',
+            created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+          );
+        `);
+
+        // Migration query to populate team_members from rescue_teams if empty
+        const checkMembers = await pool.query("SELECT COUNT(*) FROM team_members");
+        if (parseInt(checkMembers.rows[0].count, 10) === 0) {
+          console.log("[POSTGRES MIGRATION] Migrating rescue teams to team members...");
+          const teamsRes = await pool.query("SELECT * FROM rescue_teams");
+          for (const team of teamsRes.rows) {
+            const memberId = `mem-${team.id}`;
+            const checkMobile = await pool.query("SELECT COUNT(*) FROM team_members WHERE mobile_number = $1", [team.mobile]);
+            if (parseInt(checkMobile.rows[0].count, 10) === 0) {
+              await pool.query(
+                `INSERT INTO team_members (
+                  id, team_id, team_name, member_name, mobile_number, email, city, state, status, role, created_at, updated_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+                [
+                  memberId,
+                  team.id,
+                  team.name,
+                  `${team.name} Leader`,
+                  team.mobile,
+                  team.email,
+                  team.city,
+                  team.state,
+                  team.status,
+                  "RESCUE_TEAM",
+                  team.created_at || new Date(),
+                  new Date()
+                ]
+              );
+              console.log(`[POSTGRES MIGRATION] Migrated team ${team.name} to team member.`);
+            }
+          }
+        }
 
         await pool.query(`
           CREATE TABLE IF NOT EXISTS donations (
@@ -259,6 +338,23 @@ function mapRescueTeam(row: any): RescueTeam {
     email: row.email,
     status: row.status as any,
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : "",
+  };
+}
+
+function mapTeamMember(row: any): TeamMember {
+  return {
+    id: row.id,
+    teamId: row.team_id,
+    teamName: row.team_name,
+    memberName: row.member_name,
+    mobileNumber: row.mobile_number,
+    email: row.email || undefined,
+    city: row.city,
+    state: row.state,
+    status: row.status as any,
+    role: row.role as any,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : "",
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : "",
   };
 }
 
@@ -500,6 +596,140 @@ export const dbService = {
       return db.rescueTeams.length < initialLength;
     }
     const res = await pool.query("DELETE FROM rescue_teams WHERE id = $1", [id]);
+    return (res.rowCount ?? 0) > 0;
+  },
+
+  // --- TEAM MEMBERS ---
+  async getTeamMembers(teamId?: string): Promise<TeamMember[]> {
+    await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      const members = db.teamMembers || [];
+      if (teamId) {
+        return members.filter((m: any) => m.teamId === teamId);
+      }
+      return members;
+    }
+    if (teamId) {
+      const res = await pool.query("SELECT * FROM team_members WHERE team_id = $1 ORDER BY created_at DESC", [teamId]);
+      return res.rows.map(mapTeamMember);
+    } else {
+      const res = await pool.query("SELECT * FROM team_members ORDER BY created_at DESC");
+      return res.rows.map(mapTeamMember);
+    }
+  },
+
+  async findTeamMemberByMobile(mobile: string): Promise<TeamMember | undefined> {
+    await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      return (db.teamMembers || []).find((m: any) => m.mobileNumber === mobile);
+    }
+    const res = await pool.query("SELECT * FROM team_members WHERE mobile_number = $1", [mobile]);
+    if ((res.rowCount ?? 0) === 0) return undefined;
+    return mapTeamMember(res.rows[0]);
+  },
+
+  async createTeamMember(member: Omit<TeamMember, "id" | "createdAt" | "updatedAt">): Promise<TeamMember> {
+    await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      const newId = `MEM-${Math.floor(1000 + Math.random() * 9000)}`;
+      const now = new Date().toISOString();
+      const newMember: TeamMember = {
+        id: newId,
+        teamId: member.teamId,
+        teamName: member.teamName,
+        memberName: member.memberName,
+        mobileNumber: member.mobileNumber,
+        email: member.email,
+        city: member.city,
+        state: member.state,
+        status: member.status,
+        role: member.role || "RESCUE_TEAM",
+        createdAt: now,
+        updatedAt: now,
+      };
+      db.teamMembers = db.teamMembers || [];
+      db.teamMembers.push(newMember);
+      writeLocalJsonDb(db);
+      return newMember;
+    }
+    const newId = `MEM-${Math.floor(1000 + Math.random() * 9000)}`;
+    const now = new Date();
+    const res = await pool.query(
+      `INSERT INTO team_members (
+        id, team_id, team_name, member_name, mobile_number, email, city, state, status, role, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+      [
+        newId,
+        member.teamId,
+        member.teamName,
+        member.memberName,
+        member.mobileNumber,
+        member.email || null,
+        member.city,
+        member.state,
+        member.status,
+        member.role || "RESCUE_TEAM",
+        now,
+        now
+      ]
+    );
+    return mapTeamMember(res.rows[0]);
+  },
+
+  async updateTeamMember(id: string, updates: Partial<Omit<TeamMember, "id" | "createdAt" | "updatedAt">>): Promise<TeamMember | undefined> {
+    await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      const idx = (db.teamMembers || []).findIndex((m: any) => m.id === id);
+      if (idx === -1) return undefined;
+      const now = new Date().toISOString();
+      const updated = { ...db.teamMembers[idx], ...updates, updatedAt: now };
+      db.teamMembers[idx] = updated;
+      writeLocalJsonDb(db);
+      return updated;
+    }
+    const fields = Object.keys(updates);
+    if (fields.length === 0) {
+      const res = await pool.query("SELECT * FROM team_members WHERE id = $1", [id]);
+      return (res.rowCount ?? 0) > 0 ? mapTeamMember(res.rows[0]) : undefined;
+    }
+    const setClauses: string[] = ["updated_at = NOW()"];
+    const values: any[] = [id];
+    let argIndex = 2;
+
+    for (const field of fields) {
+      let colName = field;
+      if (field === "teamId") colName = "team_id";
+      else if (field === "teamName") colName = "team_name";
+      else if (field === "memberName") colName = "member_name";
+      else if (field === "mobileNumber") colName = "mobile_number";
+      
+      setClauses.push(`${colName} = $${argIndex}`);
+      values.push((updates as any)[field]);
+      argIndex++;
+    }
+
+    const res = await pool.query(
+      `UPDATE team_members SET ${setClauses.join(", ")} WHERE id = $1 RETURNING *`,
+      values
+    );
+    if ((res.rowCount ?? 0) === 0) return undefined;
+    return mapTeamMember(res.rows[0]);
+  },
+
+  async deleteTeamMember(id: string): Promise<boolean> {
+    await ensureDbInit();
+    if (useLocalJson) {
+      const db = readLocalJsonDb();
+      const initialLength = (db.teamMembers || []).length;
+      db.teamMembers = (db.teamMembers || []).filter((m: any) => m.id !== id);
+      writeLocalJsonDb(db);
+      return db.teamMembers.length < initialLength;
+    }
+    const res = await pool.query("DELETE FROM team_members WHERE id = $1", [id]);
     return (res.rowCount ?? 0) > 0;
   },
 

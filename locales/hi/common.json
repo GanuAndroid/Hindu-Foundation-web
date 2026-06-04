@@ -254,7 +254,20 @@
     "actionFailed": "कार्रवाई विफल रही।",
     "serverCommunicationFailed": "सर्वर संचार विफल रहा।",
     "confirmDeleteTeam": "क्या आप वाकई इस रेस्क्यू टीम को डेटाबेस से हटाना चाहते हैं?",
-    "failedAllocateTeam": "रेस्क्यू टीम आवंटित करने में विफल।"
+    "failedAllocateTeam": "रेस्क्यू टीम आवंटित करने में विफल।",
+    "tabMembers": "टीम के सदस्य",
+    "createMemberBtn": "टीम सदस्य जोड़ें",
+    "editMemberBtn": "सदस्य संपादित करें",
+    "memberName": "सदस्य का नाम",
+    "placeholderMemberName": "जैसे राजेश शर्मा",
+    "selectTeamOption": "रेस्क्यू टीम चुनें",
+    "memberSaved": "टीम सदस्य का विवरण सफलतापूर्वक सहेजा गया!",
+    "memberDeleted": "टीम सदस्य सफलतापूर्वक हटा दिया गया।",
+    "deleteMember": "सदस्य हटाएं",
+    "confirmDeleteMember": "क्या आप वाकई इस टीम सदस्य को हटाना चाहते हैं?",
+    "selectTeamDropdown": "बचाव दल / इकाई चुनें",
+    "memberNameLabel": "सदस्य का नाम",
+    "memberNamePlaceholder": "सदस्य का नाम दर्ज करें"
   },
   "donate": {
     "pageTitle": "पशु बचाव एवं सेवा हेतु दान करें",

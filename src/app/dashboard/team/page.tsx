@@ -154,9 +154,9 @@ export default function RescueTeamDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "accept",
-          updaterName: user.name,
-          assignedRescueTeamId: "team-1",
-          assignedRescueTeamName: user.name,
+          updaterName: user.memberName || user.name,
+          assignedRescueTeamId: user.teamId || "team-1",
+          assignedRescueTeamName: user.teamName || user.name,
           assignedRescueTeamMobile: user.mobile,
         }),
       });
@@ -190,7 +190,7 @@ export default function RescueTeamDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "pending",
-          updaterName: user.name,
+          updaterName: user.memberName || user.name,
           pendingReason: pendingForm.reason,
           pendingDescription: pendingForm.description,
         }),
@@ -241,7 +241,7 @@ export default function RescueTeamDashboard() {
     try {
       const payload = {
         action: "close",
-        updaterName: user.name,
+        updaterName: user.memberName || user.name,
         closureReason: closeForm.reason,
         closureDescription: closeForm.description,
         closurePhotoUrl: closeForm.photoUrl,
@@ -335,16 +335,21 @@ export default function RescueTeamDashboard() {
   };
 
   // Filtered tickets lists
-  const filteredTickets = tickets.filter((tItem) => {
+  const visibleTickets = tickets.filter((tItem) => {
+    if (tItem.status === "Pending") return true;
+    return user?.teamId ? tItem.assignedRescueTeamId === user.teamId : tItem.assignedRescueTeamName === user?.name;
+  });
+
+  const filteredTickets = visibleTickets.filter((tItem) => {
     if (filterStatus === "All") return true;
     return tItem.status === filterStatus;
   });
 
   // Stats calculation
-  const total = tickets.length;
-  const pending = tickets.filter((tItem) => tItem.status === "Pending").length;
-  const accepted = tickets.filter((tItem) => tItem.status === "Accepted").length;
-  const closed = tickets.filter((tItem) => tItem.status === "Closed").length;
+  const total = visibleTickets.length;
+  const pending = visibleTickets.filter((tItem) => tItem.status === "Pending").length;
+  const accepted = visibleTickets.filter((tItem) => tItem.status === "Accepted").length;
+  const closed = visibleTickets.filter((tItem) => tItem.status === "Closed").length;
 
   const getStatusTranslation = (status: string) => {
     if (status === "Pending") return t("user.pending");
@@ -404,8 +409,13 @@ export default function RescueTeamDashboard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/5 pb-6">
         <div>
           <span className="text-[#F15A24] font-black text-xs uppercase tracking-widest block">{t("team.dashboardTitle")}</span>
-          <h1 className="text-3xl font-black mt-1">{t("team.welcome")}, {user.name}</h1>
-          <p className="text-xs text-white/50">Manage local emergency callouts and perform active veterinary treatments.</p>
+          <h1 className="text-3xl font-black mt-1">{t("team.welcome")}, {user.memberName || user.name}</h1>
+          {user.teamName && (
+            <p className="text-xs text-orange-400 font-bold mt-1">
+              {language === "hi" ? "बचाव दल" : "Team"}: {user.teamName}
+            </p>
+          )}
+          <p className="text-xs text-white/50 mt-1">Manage local emergency callouts and perform active veterinary treatments.</p>
         </div>
       </div>
 

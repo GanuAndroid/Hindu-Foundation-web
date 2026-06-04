@@ -254,7 +254,20 @@
     "actionFailed": "Action failed.",
     "serverCommunicationFailed": "Server communications failed.",
     "confirmDeleteTeam": "Are you sure you want to remove this rescue team from database?",
-    "failedAllocateTeam": "Failed to allocate rescue team."
+    "failedAllocateTeam": "Failed to allocate rescue team.",
+    "tabMembers": "Team Members",
+    "createMemberBtn": "Add Team Member",
+    "editMemberBtn": "Edit Member",
+    "memberName": "Member Name",
+    "placeholderMemberName": "e.g. Rajesh Sharma",
+    "selectTeamOption": "Select Rescue Team",
+    "memberSaved": "Team member details saved successfully!",
+    "memberDeleted": "Team member successfully removed.",
+    "deleteMember": "Remove Member",
+    "confirmDeleteMember": "Are you sure you want to remove this team member?",
+    "selectTeamDropdown": "Select Rescue Team / Unit",
+    "memberNameLabel": "Member Name",
+    "memberNamePlaceholder": "Enter Member Name"
   },
   "donate": {
     "pageTitle": "Support Animal Rescue & Welfare",

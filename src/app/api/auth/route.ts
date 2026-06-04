@@ -66,13 +66,21 @@ export async function POST(req: NextRequest) {
 
     // 4. Special validation for Rescue Team role
     if (role === "team") {
+      const member = await dbService.findTeamMemberByMobile(mobile);
+      if (!member) {
+        return NextResponse.json({ error: "Your mobile number is not registered as a Rescue Team member." }, { status: 403 });
+      }
+      if (member.status !== "Active") {
+        return NextResponse.json({ error: "Your Rescue Team member account is inactive. Please contact Admin." }, { status: 403 });
+      }
+
       const activeTeams = await dbService.getRescueTeams();
-      const teamRecord = activeTeams.find((t) => t.mobile === mobile);
+      const teamRecord = activeTeams.find((t) => t.id === member.teamId);
       if (!teamRecord) {
-        return NextResponse.json({ error: "Your mobile number is not registered as an active Rescue Team." }, { status: 403 });
+        return NextResponse.json({ error: "Your associated Rescue Team unit could not be found." }, { status: 403 });
       }
       if (teamRecord.status === "Disabled") {
-        return NextResponse.json({ error: "Your Rescue Team account has been disabled by Admin." }, { status: 403 });
+        return NextResponse.json({ error: "Your Rescue Team unit has been disabled by Admin." }, { status: 403 });
       }
 
       // Check if user entry exists for team, if not, create it
@@ -81,10 +89,16 @@ export async function POST(req: NextRequest) {
         teamUser = await dbService.createUser({
           mobile,
           role: "team",
-          name: teamRecord.name,
+          name: member.teamName,
         });
       }
-      return NextResponse.json(teamUser);
+      return NextResponse.json({
+        ...teamUser,
+        name: member.teamName,
+        memberName: member.memberName,
+        teamId: member.teamId,
+        teamName: member.teamName,
+      });
     }
 
     // 5. Standard Public Citizen User Flow

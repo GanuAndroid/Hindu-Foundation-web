@@ -6,6 +6,9 @@ export interface User {
   mobile: string;
   name: string;
   createdAt: string;
+  memberName?: string;
+  teamId?: string;
+  teamName?: string;
 }
 
 export type TeamStatus = "Active" | "Disabled";
@@ -19,6 +22,21 @@ export interface RescueTeam {
   email: string;
   status: TeamStatus;
   createdAt: string;
+}
+
+export interface TeamMember {
+  id: string;
+  teamId: string;
+  teamName: string;
+  memberName: string;
+  mobileNumber: string;
+  email?: string;
+  city: string;
+  state: string;
+  status: "Active" | "Inactive";
+  role: "RESCUE_TEAM";
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type TicketStatus = "Pending" | "Accepted" | "Closed";
