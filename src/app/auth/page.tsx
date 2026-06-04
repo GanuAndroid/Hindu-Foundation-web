@@ -9,7 +9,7 @@ import { Heart, Smartphone, ShieldCheck, UserCheck, AlertTriangle } from "lucide
 function AuthPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   
   // Detect role from URL query param, default to "user" (citizen)
   const roleFromUrl = (searchParams.get("role") as any) || "user";
@@ -24,6 +24,7 @@ function AuthPageContent() {
   const [isSending, setIsSending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [showDemoCodeAlert, setShowDemoCodeAlert] = useState(false);
+  const [resendTimer, setResendTimer] = useState(30);
 
   // Sync role if URL query param changes
   useEffect(() => {
@@ -42,6 +43,19 @@ function AuthPageContent() {
     }
   }, [user, router]);
 
+  // Countdown timer for Resend OTP
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (step === "otp" && resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [step, resendTimer]);
+
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mobile || mobile.length !== 10) {
@@ -55,6 +69,21 @@ function AuthPageContent() {
 
     if (success) {
       setStep("otp");
+      setResendTimer(30);
+      setShowDemoCodeAlert(true);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendTimer > 0 || isSending) return;
+
+    setIsSending(true);
+    const success = await sendOtp(mobile, role);
+    setIsSending(false);
+
+    if (success) {
+      setResendTimer(30);
+      setOtp(""); // Clear previous OTP input
       setShowDemoCodeAlert(true);
     }
   };
@@ -198,12 +227,32 @@ function AuthPageContent() {
                 onChange={(e) => setOtp(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center text-lg font-black tracking-[0.4em] focus:outline-none focus:border-orange-500 transition-colors text-white font-mono placeholder:tracking-normal placeholder:font-bold"
               />
+              
+              <div className="text-center text-xs mt-3 flex items-center justify-center gap-1.5">
+                <span className="text-white/40">
+                  {language === "hi" ? "ओटीपी नहीं मिला?" : "Didn't receive the code?"}
+                </span>
+                {resendTimer > 0 ? (
+                  <span className="text-orange-400 font-extrabold select-none animate-pulse">
+                    {language === "hi" ? `${resendTimer} सेकंड बाद पुनः भेजें` : `Resend in ${resendTimer}s`}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={isSending}
+                    className="text-[#F15A24] font-black hover:underline cursor-pointer disabled:opacity-50 focus:outline-none transition-colors"
+                  >
+                    {t("auth.resendOtp")}
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => setStep("mobile")}
+                onClick={() => { setStep("mobile"); setResendTimer(30); }}
                 className="w-1/3 py-3 border border-white/10 rounded-xl text-xs font-bold text-white/60 hover:text-white transition-colors"
               >
                 {t("admin.cancel")}
@@ -224,13 +273,13 @@ function AuthPageContent() {
           <span className="text-white/40 font-semibold block">Need another gateway?</span>
           <div className="flex justify-center gap-4 text-[#F15A24] font-bold">
             {role !== "user" && (
-              <button onClick={() => { setRole("user"); setStep("mobile"); }} className="hover:underline">{t("auth.citizenUser")}</button>
+              <button onClick={() => { setRole("user"); setStep("mobile"); setResendTimer(30); }} className="hover:underline">{t("auth.citizenUser")}</button>
             )}
             {role !== "team" && (
-              <button onClick={() => { setRole("team"); setStep("mobile"); }} className="hover:underline">{t("auth.rescueTeam")}</button>
+              <button onClick={() => { setRole("team"); setStep("mobile"); setResendTimer(30); }} className="hover:underline">{t("auth.rescueTeam")}</button>
             )}
             {role !== "admin" && (
-              <button onClick={() => { setRole("admin"); setStep("mobile"); }} className="hover:underline">{t("auth.admin")}</button>
+              <button onClick={() => { setRole("admin"); setStep("mobile"); setResendTimer(30); }} className="hover:underline">{t("auth.admin")}</button>
             )}
           </div>
         </div>
