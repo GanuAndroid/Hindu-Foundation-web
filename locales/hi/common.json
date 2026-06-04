@@ -267,7 +267,9 @@
     "confirmDeleteMember": "क्या आप वाकई इस टीम सदस्य को हटाना चाहते हैं?",
     "selectTeamDropdown": "बचाव दल / इकाई चुनें",
     "memberNameLabel": "सदस्य का नाम",
-    "memberNamePlaceholder": "सदस्य का नाम दर्ज करें"
+    "memberNamePlaceholder": "सदस्य का नाम दर्ज करें",
+    "filterTeamDropdown": "इकाई / टीम द्वारा फ़िल्टर करें",
+    "allTeamsOption": "सभी इकाइयाँ / टीमें"
   },
   "donate": {
     "pageTitle": "पशु बचाव एवं सेवा हेतु दान करें",

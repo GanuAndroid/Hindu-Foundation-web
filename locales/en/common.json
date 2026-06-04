@@ -267,7 +267,9 @@
     "confirmDeleteMember": "Are you sure you want to remove this team member?",
     "selectTeamDropdown": "Select Rescue Team / Unit",
     "memberNameLabel": "Member Name",
-    "memberNamePlaceholder": "Enter Member Name"
+    "memberNamePlaceholder": "Enter Member Name",
+    "filterTeamDropdown": "Filter by Unit / Team",
+    "allTeamsOption": "All Units / Teams"
   },
   "donate": {
     "pageTitle": "Support Animal Rescue & Welfare",

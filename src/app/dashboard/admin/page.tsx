@@ -128,6 +128,7 @@ export default function AdminDashboard() {
   const [teamSearchQuery, setTeamSearchQuery] = useState("");
   const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
+  const [selectedTeamFilter, setSelectedTeamFilter] = useState("");
 
   // Ticket Allocation Modal
   const [allocatingTicket, setAllocatingTicket] = useState<Ticket | null>(null);
@@ -567,9 +568,11 @@ export default function AdminDashboard() {
   // Filtered Members
   const filteredMembers = members.filter((m) => {
     const q = memberSearch.toLowerCase();
-    return m.memberName.toLowerCase().includes(q) ||
+    const matchesSearch = m.memberName.toLowerCase().includes(q) ||
            m.teamName.toLowerCase().includes(q) ||
            m.mobileNumber.includes(q);
+    const matchesTeamFilter = selectedTeamFilter === "" ? true : m.teamId === selectedTeamFilter;
+    return matchesSearch && matchesTeamFilter;
   });
 
   // Calculate Metrics
@@ -1070,6 +1073,24 @@ export default function AdminDashboard() {
               </h3>
               
               <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto items-stretch sm:items-center">
+                {/* Rescue Unit / Team Filter Dropdown */}
+                <div className="relative flex-grow sm:w-56">
+                  <select
+                    value={selectedTeamFilter}
+                    onChange={(e) => setSelectedTeamFilter(e.target.value)}
+                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500 font-bold cursor-pointer"
+                  >
+                    <option value="">
+                      {t("admin.allTeamsOption") || (language === "hi" ? "सभी इकाइयाँ / टीमें" : "All Units / Teams")}
+                    </option>
+                    {teams.map((team) => (
+                      <option key={team.id} value={team.id}>
+                        {team.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="relative flex-grow sm:w-60">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/40" />
                   <input
