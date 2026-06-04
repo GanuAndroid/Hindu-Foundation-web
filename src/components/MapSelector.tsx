@@ -612,18 +612,18 @@ export default function MapSelector({
       </div>
 
       {/* Lat/Lng Coordinate and Decoded Address summary panels */}
-      <div className="bg-orange-500/[0.03] border border-orange-500/10 rounded-xl p-3.5 grid grid-cols-2 md:grid-cols-3 gap-2.5 text-xs font-bold">
-        <div>
-          <span className="block text-[10px] uppercase text-white/50 mb-0.5">{tLoc.latitude}</span>
-          <span className="font-mono text-white/95">{lat}</span>
+      <div className="bg-slate-950 border border-orange-500/30 rounded-2xl p-4 grid grid-cols-1 md:grid-cols-5 gap-4 text-xs font-bold shadow-inner">
+        <div className="bg-white/[0.02] border border-white/5 p-3 rounded-xl md:col-span-1">
+          <span className="block text-[10px] uppercase text-orange-400 font-extrabold tracking-wider mb-1">{tLoc.latitude}</span>
+          <span className="font-mono text-white text-sm font-black select-all">{lat}</span>
         </div>
-        <div>
-          <span className="block text-[10px] uppercase text-white/50 mb-0.5">{tLoc.longitude}</span>
-          <span className="font-mono text-white/95">{lng}</span>
+        <div className="bg-white/[0.02] border border-white/5 p-3 rounded-xl md:col-span-1">
+          <span className="block text-[10px] uppercase text-orange-400 font-extrabold tracking-wider mb-1">{tLoc.longitude}</span>
+          <span className="font-mono text-white text-sm font-black select-all">{lng}</span>
         </div>
-        <div className="col-span-2 md:col-span-1">
-          <span className="block text-[10px] uppercase text-white/50 mb-0.5">{tLoc.address}</span>
-          <span className="text-white/95 truncate block max-w-[200px]" title={address}>
+        <div className="bg-white/[0.02] border border-white/5 p-3 rounded-xl md:col-span-3">
+          <span className="block text-[10px] uppercase text-orange-400 font-extrabold tracking-wider mb-1">{tLoc.address}</span>
+          <span className="text-white text-xs font-bold leading-normal block break-words" title={address}>
             {address}
           </span>
         </div>
