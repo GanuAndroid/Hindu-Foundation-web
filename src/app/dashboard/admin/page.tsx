@@ -10,6 +10,7 @@ import {
   Heart,
   Ambulance,
   Users,
+  User as UserIcon,
   CheckCircle,
   Clock,
   Plus,
@@ -79,7 +80,7 @@ export default function AdminDashboard() {
   const [selectedTicketTab, setSelectedTicketTab] = useState<"All" | "Pending" | "Accepted" | "Closed">("All");
 
   // Tab navigation states
-  const [activeTab, setActiveTab] = useState<"terminal" | "teams" | "users" | "donations" | "proofs" | "reports" | "monitor">("terminal");
+  const [activeTab, setActiveTab] = useState<"terminal" | "teams" | "members" | "users" | "donations" | "proofs" | "reports" | "monitor">("terminal");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // User tab search & CRUD states
@@ -118,12 +119,15 @@ export default function AdminDashboard() {
     memberName: "",
     mobileNumber: "",
     email: "",
-    status: "Active" as "Active" | "Inactive"
+    status: "Active" as "Active" | "Inactive",
+    city: "",
+    state: ""
   });
   const [memberFormError, setMemberFormError] = useState<string | null>(null);
   const [isSubmittingMember, setIsSubmittingMember] = useState(false);
   const [teamSearchQuery, setTeamSearchQuery] = useState("");
   const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
+  const [memberSearch, setMemberSearch] = useState("");
 
   // Ticket Allocation Modal
   const [allocatingTicket, setAllocatingTicket] = useState<Ticket | null>(null);
@@ -233,9 +237,9 @@ export default function AdminDashboard() {
     e.preventDefault();
     setTeamFormError(null);
 
-    // Validation
-    if (!teamForm.name || !teamForm.mobile || !teamForm.city || !teamForm.state || !teamForm.email) {
-      setTeamFormError(t("admin.allTeamFieldsRequired"));
+    // Validation (Only Unit Name, City, and State are required now)
+    if (!teamForm.name || !teamForm.city || !teamForm.state) {
+      setTeamFormError(language === "hi" ? "इकाई का नाम, शहर और राज्य आवश्यक हैं।" : "Unit Name, City, and State are required.");
       return;
     }
 
@@ -309,7 +313,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     setMemberFormError(null);
 
-    if (!memberForm.teamId || !memberForm.memberName || !memberForm.mobileNumber) {
+    if (!memberForm.teamId || !memberForm.memberName || !memberForm.mobileNumber || !memberForm.city || !memberForm.state) {
       setMemberFormError(language === "hi" ? "सभी फ़ील्ड आवश्यक हैं।" : "All fields are required.");
       return;
     }
@@ -330,7 +334,7 @@ export default function AdminDashboard() {
       if (res.ok) {
         setShowMemberModal(false);
         setEditingMember(null);
-        setMemberForm({ teamId: "", memberName: "", mobileNumber: "", email: "", status: "Active" });
+        setMemberForm({ teamId: "", memberName: "", mobileNumber: "", email: "", status: "Active", city: "", state: "" });
         setTeamSearchQuery("");
         loadAdminData();
       } else {
@@ -560,6 +564,14 @@ export default function AdminDashboard() {
            u.mobile.includes(userSearch);
   });
 
+  // Filtered Members
+  const filteredMembers = members.filter((m) => {
+    const q = memberSearch.toLowerCase();
+    return m.memberName.toLowerCase().includes(q) ||
+           m.teamName.toLowerCase().includes(q) ||
+           m.mobileNumber.includes(q);
+  });
+
   // Calculate Metrics
   const totalDonationVal = verifiedDonations.reduce((sum, d) => sum + d.amount, 0) + 1540250;
   const activeTeamsCount = teams.filter((t) => t.status === "Active").length;
@@ -613,8 +625,9 @@ export default function AdminDashboard() {
           <nav className="space-y-1">
             {[
               { id: "terminal", label: language === "hi" ? "ऑपरेशन्स टर्मिनल" : "Operations Terminal", icon: Sliders },
-              { id: "teams", label: language === "hi" ? "टीम बनाएं (Create Team)" : "Create Team Menu", icon: Ambulance },
-              { id: "users", label: language === "hi" ? "उपयोगकर्ता प्रबंधन" : "User Management", icon: Users },
+              { id: "teams", label: language === "hi" ? "इकाई बनाएं (Create Unit)" : "Create Unit", icon: Ambulance },
+              { id: "members", label: language === "hi" ? "टीम के सदस्य (Team Members)" : "Team Members", icon: Users },
+              { id: "users", label: language === "hi" ? "उपयोगकर्ता प्रबंधन" : "User Management", icon: UserIcon },
               { id: "donations", label: language === "hi" ? "दान बहीखाता (Ledger)" : "Donations Ledger", icon: DollarSign },
               { id: "proofs", label: language === "hi" ? "ऑफ़लाइन दान ऑडिट" : "Offline Donation Proofs", icon: ShieldCheck },
               { id: "reports", label: language === "hi" ? "सभी विश्लेषण रिपोर्ट" : "All Reports", icon: Heart },
@@ -676,7 +689,8 @@ export default function AdminDashboard() {
             <span className="text-[#F15A24] font-black text-xs uppercase tracking-widest block">{t("admin.coreControl")}</span>
             <h1 className="text-3xl font-black mt-1">
               {activeTab === "terminal" && t("admin.portalTitle")}
-              {activeTab === "teams" && (language === "hi" ? "टीम बनाएं (Create Team)" : "Create Team Menu")}
+              {activeTab === "teams" && (language === "hi" ? "इकाई बनाएं (Create Unit)" : "Create Unit")}
+              {activeTab === "members" && (language === "hi" ? "टीम के सदस्य" : "Team Members")}
               {activeTab === "users" && (language === "hi" ? "उपयोगकर्ता प्रबंधन" : "User Management")}
               {activeTab === "donations" && (language === "hi" ? "दान बहीखाता (Ledger)" : "Donations Ledger")}
               {activeTab === "proofs" && (language === "hi" ? "ऑफ़लाइन दान ऑडिट" : "Offline Donation Proofs")}
@@ -844,7 +858,9 @@ export default function AdminDashboard() {
                       memberName: "",
                       mobileNumber: "",
                       email: "",
-                      status: "Active"
+                      status: "Active",
+                      city: selectedTeam.city,
+                      state: selectedTeam.state
                     });
                     setTeamSearchQuery(selectedTeam.name);
                     setShowMemberModal(true);
@@ -857,15 +873,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Team Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white/5 border border-white/5 p-4 rounded-2xl">
-                  <div className="text-[10px] uppercase text-white/40 tracking-wider mb-1">{t("admin.mobileNumber")}</div>
-                  <div className="text-sm font-bold text-white font-mono">{selectedTeam.mobile}</div>
-                </div>
-                <div className="bg-white/5 border border-white/5 p-4 rounded-2xl">
-                  <div className="text-[10px] uppercase text-white/40 tracking-wider mb-1">{t("admin.email")}</div>
-                  <div className="text-sm font-bold text-white break-all">{selectedTeam.email}</div>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-white/5 border border-white/5 p-4 rounded-2xl">
                   <div className="text-[10px] uppercase text-white/40 tracking-wider mb-1">{t("admin.locality")}</div>
                   <div className="text-sm font-bold text-white">{selectedTeam.city}, {selectedTeam.state}</div>
@@ -932,7 +940,9 @@ export default function AdminDashboard() {
                                     memberName: member.memberName,
                                     mobileNumber: member.mobileNumber,
                                     email: member.email || "",
-                                    status: member.status
+                                    status: member.status,
+                                    city: member.city || "",
+                                    state: member.state || ""
                                   });
                                   setTeamSearchQuery(member.teamName);
                                   setShowMemberModal(true);
@@ -986,9 +996,7 @@ export default function AdminDashboard() {
                     <thead>
                       <tr className="border-b border-white/10 text-white/50 uppercase tracking-widest font-black text-[9px]">
                         <th className="py-3 px-4">{t("admin.teamName")}</th>
-                        <th className="py-3 px-4">{t("admin.mobileNumber")}</th>
                         <th className="py-3 px-4">{t("admin.locality")}</th>
-                        <th className="py-3 px-4">{t("admin.email")}</th>
                         <th className="py-3 px-4">{t("admin.status")}</th>
                         <th className="py-3 px-4 text-right">{t("team.actions")}</th>
                       </tr>
@@ -1002,9 +1010,7 @@ export default function AdminDashboard() {
                           >
                             {team.name}
                           </td>
-                          <td className="py-3 px-4 font-mono text-white/80">{team.mobile}</td>
                           <td className="py-3 px-4 text-white/70">{team.city}, {team.state}</td>
-                          <td className="py-3 px-4 text-white/60">{team.email}</td>
                           <td className="py-3 px-4">
                             <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
                               team.status === "Active" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
@@ -1052,6 +1058,126 @@ export default function AdminDashboard() {
               )}
             </div>
           )
+        )}
+
+        {/* VIEW: RESCUE TEAM MEMBER MANAGEMENT (TAB VIEW) */}
+        {activeTab === "members" && (
+          <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
+              <h3 className="font-extrabold text-lg flex items-center gap-2">
+                <Users className="w-5 h-5 text-orange-400" />
+                {t("admin.tabMembers") || (language === "hi" ? "टीम के सदस्य" : "Team Members")}
+              </h3>
+              
+              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto items-stretch sm:items-center">
+                <div className="relative flex-grow sm:w-60">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/40" />
+                  <input
+                    type="text"
+                    placeholder={language === "hi" ? "सदस्य या टीम खोजें..." : "Search members or units..."}
+                    value={memberSearch}
+                    onChange={(e) => setMemberSearch(e.target.value)}
+                    className="w-full bg-slate-950 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+                
+                <button
+                  onClick={() => {
+                    setEditingMember(null);
+                    setMemberForm({
+                      teamId: "",
+                      memberName: "",
+                      mobileNumber: "",
+                      email: "",
+                      status: "Active",
+                      city: "",
+                      state: ""
+                    });
+                    setTeamSearchQuery("");
+                    setShowMemberModal(true);
+                  }}
+                  className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] text-white text-xs font-bold rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                >
+                  <Plus className="w-4 h-4" />
+                  {t("admin.createMemberBtn")}
+                </button>
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="text-center py-10 text-xs text-white/40">{t("admin.loadingTeams") || "Loading..."}</div>
+            ) : filteredMembers.length === 0 ? (
+              <div className="text-center py-10 text-xs text-white/40 bg-white/[0.02] border border-white/5 rounded-2xl">
+                {language === "hi" ? "कोई टीम सदस्य नहीं मिला।" : "No team members found."}
+              </div>
+            ) : (
+              <div className="overflow-x-auto bg-white/[0.01] border border-white/5 rounded-2xl">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/10 text-white/50 uppercase tracking-widest font-black text-[9px]">
+                      <th className="py-3 px-4">{t("admin.memberName")}</th>
+                      <th className="py-3 px-4">{language === "hi" ? "बचाव दल / इकाई" : "Rescue Unit / Team"}</th>
+                      <th className="py-3 px-4">{t("admin.mobileNumber")}</th>
+                      <th className="py-3 px-4">{t("admin.email")}</th>
+                      <th className="py-3 px-4">{t("admin.status")}</th>
+                      <th className="py-3 px-4 text-right">{t("team.actions")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {filteredMembers.map((member) => (
+                      <tr key={member.id} className="hover:bg-white/[0.01]">
+                        <td className="py-3 px-4 font-extrabold text-white">{member.memberName}</td>
+                        <td className="py-3 px-4 font-bold text-orange-400">{member.teamName}</td>
+                        <td className="py-3 px-4 font-mono text-white/80">{member.mobileNumber}</td>
+                        <td className="py-3 px-4 text-white/60">{member.email || "-"}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                            member.status === "Active" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
+                          }`}>
+                            {member.status === "Active" ? t("admin.active") : t("admin.disabled")}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right space-x-2">
+                          <button
+                            onClick={() => handleToggleMemberStatus(member)}
+                            title={member.status === "Active" ? (language === "hi" ? "सदस्य को अक्षम करें" : "Disable Member") : (language === "hi" ? "सदस्य को सक्षम करें" : "Enable Member")}
+                            className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-white cursor-pointer"
+                          >
+                            <Power className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingMember(member);
+                              setMemberForm({
+                                teamId: member.teamId,
+                                memberName: member.memberName,
+                                mobileNumber: member.mobileNumber,
+                                email: member.email || "",
+                                status: member.status,
+                                city: member.city || "",
+                                state: member.state || ""
+                              });
+                              setTeamSearchQuery(member.teamName);
+                              setShowMemberModal(true);
+                            }}
+                            className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-orange-400 cursor-pointer"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMember(member.id)}
+                            className="p-1.5 hover:bg-white/5 rounded text-white/50 hover:text-red-400 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         )}
 
         {/* VIEW 3: USER MANAGEMENT */}
@@ -1770,30 +1896,16 @@ export default function AdminDashboard() {
             )}
 
             <form onSubmit={handleTeamSubmit} className="space-y-4 text-xs font-bold text-white/70">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block mb-1.5 uppercase tracking-wider text-white/50">{t("admin.teamNameLabel")}</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder={t("admin.teamNamePlaceholder")}
-                    value={teamForm.name}
-                    onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1.5 uppercase tracking-wider text-white/50">{t("admin.mobileOtpLabel")}</label>
-                  <input
-                    type="tel"
-                    required
-                    pattern="[0-9]{10}"
-                    placeholder={t("admin.mobilePlaceholder")}
-                    value={teamForm.mobile}
-                    onChange={(e) => setTeamForm({ ...teamForm, mobile: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white font-mono"
-                  />
-                </div>
+              <div>
+                <label className="block mb-1.5 uppercase tracking-wider text-white/50">{t("admin.teamNameLabel")}</label>
+                <input
+                  type="text"
+                  required
+                  placeholder={t("admin.teamNamePlaceholder")}
+                  value={teamForm.name}
+                  onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white"
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1819,18 +1931,6 @@ export default function AdminDashboard() {
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="block mb-1.5 uppercase tracking-wider text-white/50">{t("admin.emailLabel")}</label>
-                <input
-                  type="email"
-                  required
-                  placeholder={t("admin.emailPlaceholder")}
-                  value={teamForm.email}
-                  onChange={(e) => setTeamForm({ ...teamForm, email: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white"
-                />
               </div>
 
               <div>
@@ -1907,7 +2007,12 @@ export default function AdminDashboard() {
                       // If typing, reset teamId if it doesn't match
                       const matched = teams.find(t => t.name === e.target.value);
                       if (matched) {
-                        setMemberForm(prev => ({ ...prev, teamId: matched.id }));
+                        setMemberForm(prev => ({ 
+                          ...prev, 
+                          teamId: matched.id,
+                          city: matched.city,
+                          state: matched.state
+                        }));
                       }
                     }}
                     onFocus={() => setIsTeamDropdownOpen(true)}
@@ -1918,13 +2023,18 @@ export default function AdminDashboard() {
                       {teams
                         .filter((t) => t.status === "Active" && t.name.toLowerCase().includes(teamSearchQuery.toLowerCase()))
                         .map((team) => (
-                          <div
-                            key={team.id}
-                            onClick={() => {
-                              setMemberForm(prev => ({ ...prev, teamId: team.id }));
-                              setTeamSearchQuery(team.name);
-                              setIsTeamDropdownOpen(false);
-                            }}
+                           <div
+                             key={team.id}
+                             onClick={() => {
+                               setMemberForm(prev => ({ 
+                                 ...prev, 
+                                 teamId: team.id,
+                                 city: team.city,
+                                 state: team.state
+                               }));
+                               setTeamSearchQuery(team.name);
+                               setIsTeamDropdownOpen(false);
+                             }}
                             className="px-4 py-2 hover:bg-white/10 text-white text-xs font-bold cursor-pointer"
                           >
                             {team.name} ({team.city})
@@ -1940,34 +2050,31 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Read-only City and State fields */}
-              {(() => {
-                const selTeam = teams.find((t) => t.id === memberForm.teamId);
-                return (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block mb-1.5 uppercase tracking-wider text-white/50">{t("admin.city")}</label>
-                      <input
-                        type="text"
-                        readOnly
-                        placeholder={t("admin.city")}
-                        value={selTeam ? selTeam.city : ""}
-                        className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-4 py-3 text-sm text-white/50 focus:outline-none cursor-not-allowed"
-                      />
-                    </div>
-                    <div>
-                      <label className="block mb-1.5 uppercase tracking-wider text-white/50">{t("admin.state")}</label>
-                      <input
-                        type="text"
-                        readOnly
-                        placeholder={t("admin.state")}
-                        value={selTeam ? selTeam.state : ""}
-                        className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-4 py-3 text-sm text-white/50 focus:outline-none cursor-not-allowed"
-                      />
-                    </div>
-                  </div>
-                );
-              })()}
+              {/* City and State fields (enabled/editable) */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block mb-1.5 uppercase tracking-wider text-white/50">{t("admin.city")}</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder={t("admin.city")}
+                    value={memberForm.city}
+                    onChange={(e) => setMemberForm({ ...memberForm, city: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1.5 uppercase tracking-wider text-white/50">{t("admin.state")}</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder={t("admin.state")}
+                    value={memberForm.state}
+                    onChange={(e) => setMemberForm({ ...memberForm, state: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white"
+                  />
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

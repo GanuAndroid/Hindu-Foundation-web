@@ -17,22 +17,26 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, mobile, city, state, email, status } = body;
 
-    if (!name || !mobile || !city || !state || !email) {
-      return NextResponse.json({ error: "All fields are required" }, { status: 400 });
+    if (!name || !city || !state) {
+      return NextResponse.json({ error: "Unit Name, City, and State are required" }, { status: 400 });
     }
+
+    // Generate unique placeholder mobile & email if not provided (since only Unit Name, City, State and Status are needed)
+    const finalMobile = mobile || `U-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const finalEmail = email || `unit-${Date.now()}@humhaihindufoundation.org`;
 
     // Check if team mobile already exists
     const existingTeams = await dbService.getRescueTeams();
-    if (existingTeams.some((t) => t.mobile === mobile)) {
+    if (existingTeams.some((t) => t.mobile === finalMobile)) {
       return NextResponse.json({ error: "Rescue team with this mobile number already exists" }, { status: 400 });
     }
 
     const newTeam = await dbService.createRescueTeam({
       name,
-      mobile,
+      mobile: finalMobile,
       city,
       state,
-      email,
+      email: finalEmail,
       status: status || "Active",
     });
 

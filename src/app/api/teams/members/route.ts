@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { teamId, memberName, mobileNumber, email, status } = body;
+    const { teamId, memberName, mobileNumber, email, status, city, state } = body;
 
     if (!teamId || !memberName || !mobileNumber) {
       return NextResponse.json({ error: "Team, Member Name, and Mobile Number are required" }, { status: 400 });
@@ -55,8 +55,8 @@ export async function POST(req: NextRequest) {
       memberName,
       mobileNumber: cleanMobile,
       email: email || undefined,
-      city: teamRecord.city,
-      state: teamRecord.state,
+      city: city || teamRecord.city,
+      state: state || teamRecord.state,
       status: status || "Active",
       role: "RESCUE_TEAM",
     });
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, teamId, memberName, mobileNumber, email, status } = body;
+    const { id, teamId, memberName, mobileNumber, email, status, city, state } = body;
 
     if (!id) {
       return NextResponse.json({ error: "Member ID is required" }, { status: 400 });
@@ -82,6 +82,8 @@ export async function PUT(req: NextRequest) {
     if (memberName !== undefined) updates.memberName = memberName;
     if (email !== undefined) updates.email = email;
     if (status !== undefined) updates.status = status;
+    if (city !== undefined) updates.city = city;
+    if (state !== undefined) updates.state = state;
 
     if (mobileNumber !== undefined) {
       let cleanMobile = mobileNumber.replace(/\D/g, "");
@@ -110,8 +112,8 @@ export async function PUT(req: NextRequest) {
       }
       updates.teamId = teamId;
       updates.teamName = teamRecord.name;
-      updates.city = teamRecord.city;
-      updates.state = teamRecord.state;
+      if (city === undefined) updates.city = teamRecord.city;
+      if (state === undefined) updates.state = teamRecord.state;
     }
 
     const updatedMember = await dbService.updateTeamMember(id, updates);
