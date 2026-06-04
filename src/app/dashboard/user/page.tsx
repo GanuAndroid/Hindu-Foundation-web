@@ -67,6 +67,8 @@ export default function UserDashboard() {
     eventId: "",
     animalType: "Cow",
     customAnimalType: "",
+    injuryType: "",
+    customDescription: "",
     description: "",
     imageUrl: "",
     videoUrl: "",
@@ -273,11 +275,20 @@ export default function UserDashboard() {
       );
       return;
     }
-    if (!formData.description || formData.description === "") {
+    if (!formData.injuryType || formData.injuryType === "") {
       setFormError(
         language === "hi"
           ? "कृपया चोट का प्रकार (Accidental या Illness) चुनें।"
           : "Please select an injury type (Accidental or Illness)."
+      );
+      return;
+    }
+
+    if (!formData.customDescription || formData.customDescription.trim() === "") {
+      setFormError(
+        language === "hi"
+          ? "कृपया चोट का विवरण दर्ज करें।"
+          : "Please enter a description of the injury."
       );
       return;
     }
@@ -291,6 +302,8 @@ export default function UserDashboard() {
       return;
     }
 
+    const finalDescription = `${formData.injuryType} - ${formData.customDescription}`;
+
     setIsSubmittingTicket(true);
     try {
       const res = await fetch("/api/tickets", {
@@ -298,6 +311,7 @@ export default function UserDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          description: finalDescription,
           createdBy: user?.name || "Citizen Reporter",
           creatorMobile: user?.mobile || "",
         }),
@@ -310,6 +324,8 @@ export default function UserDashboard() {
           eventId: "",
           animalType: "Cow",
           customAnimalType: "",
+          injuryType: "",
+          customDescription: "",
           description: "",
           imageUrl: "",
           videoUrl: "",
@@ -644,19 +660,36 @@ export default function UserDashboard() {
                 }}
               />
 
-              {/* Case Description */}
+              {/* Injury Type Dropdown */}
               <div>
-                <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">{t("user.description")}</label>
+                <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">
+                  {language === "hi" ? "चोट का प्रकार (Injury Type)" : "Injury Type"}
+                </label>
                 <select
                   required
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white"
+                  value={formData.injuryType}
+                  onChange={(e) => setFormData({ ...formData, injuryType: e.target.value })}
+                  className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white font-bold"
                 >
                   <option value="">{language === "hi" ? "-- चुनें (Select) --" : "-- Select --"}</option>
                   <option value="Accidental">{language === "hi" ? "दुर्घटना (Accidental)" : "Accidental"}</option>
                   <option value="Illness">{language === "hi" ? "बीमारी (Illness)" : "Illness"}</option>
                 </select>
+              </div>
+
+              {/* Custom Description Textarea */}
+              <div>
+                <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">
+                  {language === "hi" ? "चोट का विवरण (Injury Description)" : "Injury Description"}
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder={language === "hi" ? "चोट या बीमारी का अधिक विवरण लिखें..." : "Provide more details about the injury or illness..."}
+                  value={formData.customDescription}
+                  onChange={(e) => setFormData({ ...formData, customDescription: e.target.value })}
+                  className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white font-medium"
+                />
               </div>
 
               <button
