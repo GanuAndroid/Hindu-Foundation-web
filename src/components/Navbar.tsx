@@ -59,6 +59,13 @@ export default function Navbar() {
               {t("nav.home")}
             </Link>
 
+            <Link
+              href="/donate"
+              className="px-4 py-2 text-orange-400 font-semibold text-sm hover:text-orange-300 transition-colors whitespace-nowrap"
+            >
+              ❤️ {t("nav.donate")}
+            </Link>
+
             {/* Role-Specific Links */}
             {!user ? (
               <>
@@ -73,12 +80,6 @@ export default function Navbar() {
                   className="px-4 py-2 rounded-lg text-sm font-medium hover:text-orange-400 transition-colors whitespace-nowrap"
                 >
                   {t("nav.howItWorks")}
-                </Link>
-                <Link
-                  href="/donate"
-                  className="px-4 py-2 text-orange-400 font-semibold text-sm hover:text-orange-300 transition-colors whitespace-nowrap"
-                >
-                  ❤️ {t("nav.donate")}
                 </Link>
                 <div className="w-[1px] h-6 bg-white/10 mx-2" />
                 <Link
@@ -179,6 +180,14 @@ export default function Navbar() {
               {t("nav.home")}
             </Link>
 
+            <Link
+              href="/donate"
+              onClick={() => setIsOpen(false)}
+              className="block px-3 py-2 rounded-md text-base font-semibold text-orange-400 hover:bg-orange-500/10"
+            >
+              ❤️ {t("nav.donate")}
+            </Link>
+
             {!user ? (
               <>
                 <Link
@@ -194,13 +203,6 @@ export default function Navbar() {
                   className="block px-3 py-2 rounded-md text-base font-medium hover:bg-orange-500/10 hover:text-orange-400"
                 >
                   {t("nav.howItWorks")}
-                </Link>
-                <Link
-                  href="/donate"
-                  onClick={() => setIsOpen(false)}
-                  className="block px-3 py-2 rounded-md text-base font-semibold text-orange-400 hover:bg-orange-500/10"
-                >
-                  ❤️ {t("nav.donate")}
                 </Link>
                 <div className="border-t border-white/5 my-2" />
                 <Link
