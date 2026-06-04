@@ -613,7 +613,7 @@ export default function AdminDashboard() {
           <nav className="space-y-1">
             {[
               { id: "terminal", label: language === "hi" ? "ऑपरेशन्स टर्मिनल" : "Operations Terminal", icon: Sliders },
-              { id: "teams", label: language === "hi" ? "बचाव दल" : "Rescue Teams", icon: Ambulance },
+              { id: "teams", label: language === "hi" ? "टीम बनाएं (Create Team)" : "Create Team Menu", icon: Ambulance },
               { id: "users", label: language === "hi" ? "उपयोगकर्ता प्रबंधन" : "User Management", icon: Users },
               { id: "donations", label: language === "hi" ? "दान बहीखाता (Ledger)" : "Donations Ledger", icon: DollarSign },
               { id: "proofs", label: language === "hi" ? "ऑफ़लाइन दान ऑडिट" : "Offline Donation Proofs", icon: ShieldCheck },
@@ -676,7 +676,7 @@ export default function AdminDashboard() {
             <span className="text-[#F15A24] font-black text-xs uppercase tracking-widest block">{t("admin.coreControl")}</span>
             <h1 className="text-3xl font-black mt-1">
               {activeTab === "terminal" && t("admin.portalTitle")}
-              {activeTab === "teams" && (language === "hi" ? "बचाव दल" : "Rescue Teams")}
+              {activeTab === "teams" && (language === "hi" ? "टीम बनाएं (Create Team)" : "Create Team Menu")}
               {activeTab === "users" && (language === "hi" ? "उपयोगकर्ता प्रबंधन" : "User Management")}
               {activeTab === "donations" && (language === "hi" ? "दान बहीखाता (Ledger)" : "Donations Ledger")}
               {activeTab === "proofs" && (language === "hi" ? "ऑफ़लाइन दान ऑडिट" : "Offline Donation Proofs")}
