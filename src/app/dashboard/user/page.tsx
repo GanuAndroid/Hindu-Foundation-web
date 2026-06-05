@@ -19,7 +19,8 @@ import {
   Eye,
   X,
   MapPin,
-  Info
+  Info,
+  Camera
 } from "lucide-react";
 import { Ticket } from "@/lib/types";
 
@@ -593,15 +594,31 @@ export default function UserDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="border-2 border-dashed border-white/10 hover:border-orange-500/30 rounded-2xl p-4 text-center space-y-3 transition-colors relative">
                   <span className="block text-xs font-bold text-white/60 uppercase">{t("user.uploadPhoto")}</span>
-                  <div className="flex items-center justify-center gap-3">
-                    <FileImage className="w-8 h-8 text-orange-400" />
-                    <input
-                      type="file"
-                      accept="image/png, image/jpeg, image/jpg"
-                      onChange={handlePhotoChange}
-                      className="text-xs text-white/40 w-full"
-                    />
+                  
+                  <div className="flex flex-col gap-2 w-full pt-1">
+                    <label className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] hover:opacity-90 text-white text-xs font-bold py-2.5 px-4 rounded-xl cursor-pointer transition-all shadow-md shadow-orange-500/10">
+                      <Camera className="w-4 h-4" />
+                      {language === "hi" ? "कैमरा से फोटो खींचें" : "Take Photo (Camera)"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handlePhotoChange}
+                        className="hidden"
+                      />
+                    </label>
+                    <label className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-white text-xs font-bold py-2.5 px-4 rounded-xl cursor-pointer border border-white/10 transition-colors">
+                      <FileImage className="w-4 h-4 text-orange-400" />
+                      {language === "hi" ? "गैलरी से फोटो चुनें" : "Upload from Gallery"}
+                      <input
+                        type="file"
+                        accept="image/png, image/jpeg, image/jpg"
+                        onChange={handlePhotoChange}
+                        className="hidden"
+                      />
+                    </label>
                   </div>
+
                   {photoUploading && <div className="text-[10px] text-orange-400 font-bold">Uploading file...</div>}
                   {photoPreview && (
                     <div className="space-y-2">
@@ -623,15 +640,31 @@ export default function UserDashboard() {
 
                 <div className="border-2 border-dashed border-white/10 hover:border-orange-500/30 rounded-2xl p-4 text-center space-y-3 transition-colors relative">
                   <span className="block text-xs font-bold text-white/60 uppercase">{t("user.uploadVideo")}</span>
-                  <div className="flex items-center justify-center gap-3">
-                    <Video className="w-8 h-8 text-orange-400" />
-                    <input
-                      type="file"
-                      accept="video/mp4, video/mov"
-                      onChange={handleVideoChange}
-                      className="text-xs text-white/40 w-full"
-                    />
+                  
+                  <div className="flex flex-col gap-2 w-full pt-1">
+                    <label className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#F15A24] to-[#FF8C00] hover:opacity-90 text-white text-xs font-bold py-2.5 px-4 rounded-xl cursor-pointer transition-all shadow-md shadow-orange-500/10">
+                      <Video className="w-4 h-4" />
+                      {language === "hi" ? "कैमरा से वीडियो बनाएं" : "Record Video (Camera)"}
+                      <input
+                        type="file"
+                        accept="video/*"
+                        capture="environment"
+                        onChange={handleVideoChange}
+                        className="hidden"
+                      />
+                    </label>
+                    <label className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-white text-xs font-bold py-2.5 px-4 rounded-xl cursor-pointer border border-white/10 transition-colors">
+                      <Video className="w-4 h-4 text-orange-400" />
+                      {language === "hi" ? "गैलरी से वीडियो चुनें" : "Upload from Gallery"}
+                      <input
+                        type="file"
+                        accept="video/mp4, video/mov"
+                        onChange={handleVideoChange}
+                        className="hidden"
+                      />
+                    </label>
                   </div>
+
                   {videoUploading && <div className="text-[10px] text-orange-400 font-bold">Uploading video...</div>}
                   {videoPreview && (
                     <div className="space-y-2">
