@@ -120,7 +120,7 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-orange-400 flex-shrink-0" />
-                <a href="mailto:rescue@hindufoundation.org" className="hover:text-orange-400">rescue@hindufoundation.org</a>
+                <a href="mailto:help@humhaihindufoundation.org" className="hover:text-orange-400">help@humhaihindufoundation.org</a>
               </li>
             </ul>
           </div>
