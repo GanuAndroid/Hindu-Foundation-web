@@ -616,16 +616,16 @@ export default function MapSelector({
       </div>
 
       {/* Lat/Lng Coordinate and Decoded Address summary panels */}
-      <div className="bg-slate-950 border border-orange-500/30 rounded-2xl p-4 grid grid-cols-1 md:grid-cols-5 gap-4 text-xs font-bold shadow-inner">
-        <div className="bg-white/[0.02] border border-white/5 p-3 rounded-xl md:col-span-1">
+      <div className="bg-slate-950 border border-orange-500/30 rounded-2xl p-4 flex flex-wrap gap-4 text-xs font-bold shadow-inner">
+        <div className="bg-white/[0.02] border border-white/5 p-3 rounded-xl flex-1 min-w-[140px]">
           <span className="block text-[10px] uppercase text-orange-400 font-extrabold tracking-wider mb-1">{tLoc.latitude}</span>
           <span className="font-mono text-white text-sm font-black select-all">{lat}</span>
         </div>
-        <div className="bg-white/[0.02] border border-white/5 p-3 rounded-xl md:col-span-1">
+        <div className="bg-white/[0.02] border border-white/5 p-3 rounded-xl flex-1 min-w-[140px]">
           <span className="block text-[10px] uppercase text-orange-400 font-extrabold tracking-wider mb-1">{tLoc.longitude}</span>
           <span className="font-mono text-white text-sm font-black select-all">{lng}</span>
         </div>
-        <div className="bg-white/[0.02] border border-white/5 p-3 rounded-xl md:col-span-3">
+        <div className="bg-white/[0.02] border border-white/5 p-3 rounded-xl flex-[2_2_0%] min-w-[280px]">
           <span className="block text-[10px] uppercase text-orange-400 font-extrabold tracking-wider mb-1">{tLoc.address}</span>
           <span className="text-white text-xs font-bold leading-normal block break-words" title={address}>
             {address}
