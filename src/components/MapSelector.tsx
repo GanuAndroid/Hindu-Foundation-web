@@ -356,22 +356,26 @@ export default function MapSelector({
     };
   }, [isGoogleMapsLoaded]);
 
-  // Sync external coordinates coordinates (if updated outside the component)
+  // Sync external coordinates (if updated outside the component)
   useEffect(() => {
+    const newPos = { lat: initialLat, lng: initialLng };
+    setLat(initialLat);
+    setLng(initialLng);
+
     if (googleMapInstRef.current && googleMarkerInstRef.current) {
       const currentCenter = googleMapInstRef.current.getCenter();
       if (
         Math.abs(currentCenter.lat() - initialLat) > 0.0001 ||
         Math.abs(currentCenter.lng() - initialLng) > 0.0001
       ) {
-        const newPos = { lat: initialLat, lng: initialLng };
-        setLat(initialLat);
-        setLng(initialLng);
         googleMapInstRef.current.setCenter(newPos);
         googleMarkerInstRef.current.setPosition(newPos);
       }
     }
-  }, [initialLat, initialLng]);
+
+    // Auto-update geocoded address text matching the current coordinates
+    reverseGeocode(initialLat, initialLng);
+  }, [initialLat, initialLng, isGoogleMapsLoaded]);
 
   // Fallback Mock Map Vector Grid click coordinates mapping
   const handleMockMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
