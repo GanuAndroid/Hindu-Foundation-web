@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     const newTicket = await dbService.createTicket({
       eventId: String(eventId),
       animalType,
-      customAnimalType: animalType === "Other" ? customAnimalType : undefined,
+      customAnimalType: customAnimalType || undefined,
       description,
       imageUrl,
       videoUrl,

@@ -473,7 +473,9 @@ export default function UserDashboard() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-black text-white text-sm">{tItem.id}</span>
-                        <span className="text-xs text-white/50">({getAnimalTypeTranslation(tItem.animalType)})</span>
+                        <span className="text-xs text-white/50">
+                          ({tItem.customAnimalType && tItem.animalType !== "Other" ? `${getAnimalTypeTranslation(tItem.animalType)} (${tItem.customAnimalType})` : (tItem.customAnimalType || getAnimalTypeTranslation(tItem.animalType))})
+                        </span>
                       </div>
                       <p className="text-xs text-white/60 line-clamp-1 mt-1 max-w-xs">{tItem.description}</p>
                       <span className="text-[10px] text-white/40 block mt-1.5">
@@ -576,19 +578,17 @@ export default function UserDashboard() {
                 </div>
               </div>
 
-              {formData.animalType === "Other" && (
-                <div className="animate-fade-in">
-                  <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">{t("user.customAnimalType")}</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder={t("user.placeholderCustomAnimal")}
-                    value={formData.customAnimalType}
-                    onChange={(e) => setFormData({ ...formData, customAnimalType: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white"
-                  />
-                </div>
-              )}
+              <div className="animate-fade-in">
+                <label className="block text-xs font-bold text-white/60 uppercase mb-1.5">{t("user.customAnimalType")}</label>
+                <input
+                  type="text"
+                  required={formData.animalType === "Other"}
+                  placeholder={t("user.placeholderCustomAnimal")}
+                  value={formData.customAnimalType}
+                  onChange={(e) => setFormData({ ...formData, customAnimalType: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-500 text-white"
+                />
+              </div>
 
               {/* Photo & Video Upload */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -747,7 +747,9 @@ export default function UserDashboard() {
                 <span className="text-[#F15A24] font-black text-[10px] uppercase tracking-widest block">Incident Rescue Details</span>
                 <h3 className="text-xl font-black mt-1 text-white flex items-center gap-2">
                   {activeTicket.id}
-                  <span className="text-xs text-white/50">({getAnimalTypeTranslation(activeTicket.animalType)})</span>
+                  <span className="text-xs text-white/50">
+                    ({activeTicket.customAnimalType && activeTicket.animalType !== "Other" ? `${getAnimalTypeTranslation(activeTicket.animalType)} (${activeTicket.customAnimalType})` : (activeTicket.customAnimalType || getAnimalTypeTranslation(activeTicket.animalType))})
+                  </span>
                 </h3>
                 <span className="text-[10px] text-white/40 block mt-0.5">Reported On: {new Date(activeTicket.createdAt).toLocaleString()}</span>
               </div>

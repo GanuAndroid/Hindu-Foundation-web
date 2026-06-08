@@ -486,7 +486,9 @@ export default function RescueTeamDashboard() {
                     <div>
                       <div className="flex items-center gap-1.5">
                         <span className="font-black text-xs text-white">{tItem.id}</span>
-                        <span className="text-[10px] text-white/40">({getAnimalTypeTranslation(tItem.animalType)})</span>
+                        <span className="text-[10px] text-white/40">
+                          ({tItem.customAnimalType && tItem.animalType !== "Other" ? `${getAnimalTypeTranslation(tItem.animalType)} (${tItem.customAnimalType})` : (tItem.customAnimalType || getAnimalTypeTranslation(tItem.animalType))})
+                        </span>
                       </div>
                       <p className="text-[10px] text-white/50 line-clamp-1 mt-0.5">{tItem.description}</p>
                       <span className="text-[9px] text-white/30 block mt-1">
@@ -674,7 +676,9 @@ export default function RescueTeamDashboard() {
                 <span className="text-[#F15A24] font-black text-[10px] uppercase tracking-widest block">{t("team.actions")}</span>
                 <h3 className="text-xl font-black mt-1 text-white flex items-center gap-2">
                   {activeTicket.id}
-                  <span className="text-xs text-white/50">({getAnimalTypeTranslation(activeTicket.animalType)})</span>
+                  <span className="text-xs text-white/50">
+                    ({activeTicket.customAnimalType && activeTicket.animalType !== "Other" ? `${getAnimalTypeTranslation(activeTicket.animalType)} (${activeTicket.customAnimalType})` : (activeTicket.customAnimalType || getAnimalTypeTranslation(activeTicket.animalType))})
+                  </span>
                 </h3>
                 <span className="text-[10px] text-white/40 block mt-0.5">{t("team.reportedBy")}: Citizen Reporter | Case ID: {activeTicket.eventId || "112"}</span>
               </div>

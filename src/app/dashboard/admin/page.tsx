@@ -853,7 +853,7 @@ export default function AdminDashboard() {
                     {filteredTickets.map((tItem) => (
                       <tr key={tItem.id} className="hover:bg-white/[0.01]">
                         <td className="py-3 px-4 font-mono font-bold text-white/80">{tItem.id}</td>
-                        <td className="py-3 px-4 font-extrabold text-white">{tItem.animalType === "Other" ? tItem.customAnimalType : getAnimalTypeTranslation(tItem.animalType)}</td>
+                        <td className="py-3 px-4 font-extrabold text-white">{tItem.customAnimalType && tItem.animalType !== "Other" ? `${getAnimalTypeTranslation(tItem.animalType)} (${tItem.customAnimalType})` : (tItem.customAnimalType || getAnimalTypeTranslation(tItem.animalType))}</td>
                         <td className="py-3 px-4 text-white/70 max-w-xs truncate">{tItem.description}</td>
                         <td className="py-3 px-4">
                           <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
@@ -2437,7 +2437,7 @@ export default function AdminDashboard() {
             <div className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl mb-6 text-xs text-white/70 space-y-2">
               <div>
                 <span className="block text-[9px] uppercase text-white/40 font-bold">{t("admin.allocatingTicket")}</span>
-                <span className="font-extrabold text-white">{allocatingTicket.id} ({allocatingTicket.animalType === "Other" ? allocatingTicket.customAnimalType : getAnimalTypeTranslation(allocatingTicket.animalType)})</span>
+                <span className="font-extrabold text-white">{allocatingTicket.id} ({allocatingTicket.customAnimalType && allocatingTicket.animalType !== "Other" ? `${getAnimalTypeTranslation(allocatingTicket.animalType)} (${allocatingTicket.customAnimalType})` : (allocatingTicket.customAnimalType || getAnimalTypeTranslation(allocatingTicket.animalType))})</span>
               </div>
               <div>
                 <span className="block text-[9px] uppercase text-white/40 font-bold">{t("admin.reportedCoordinates")}</span>
@@ -2488,7 +2488,7 @@ export default function AdminDashboard() {
                 <span className="text-[#F15A24] font-black text-[10px] uppercase tracking-widest block">Incident Command Center</span>
                 <h3 className="text-xl font-black mt-1 text-white flex items-center gap-2">
                   {activeTicket.id}
-                  <span className="text-xs text-white/50">({activeTicket.animalType === "Other" ? activeTicket.customAnimalType : getAnimalTypeTranslation(activeTicket.animalType)})</span>
+                  <span className="text-xs text-white/50">({activeTicket.customAnimalType && activeTicket.animalType !== "Other" ? `${getAnimalTypeTranslation(activeTicket.animalType)} (${activeTicket.customAnimalType})` : (activeTicket.customAnimalType || getAnimalTypeTranslation(activeTicket.animalType))})</span>
                 </h3>
                 <span className="text-[10px] text-white/40 block mt-0.5">Reported On: {new Date(activeTicket.createdAt).toLocaleString()} | Reporter: {activeTicket.createdBy}</span>
               </div>
