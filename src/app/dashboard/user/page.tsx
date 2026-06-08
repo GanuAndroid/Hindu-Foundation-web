@@ -846,30 +846,30 @@ export default function UserDashboard() {
               <div className="space-y-4">
                 {/* Assignment detail block */}
                 <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-2 text-xs">
-                  <span className="text-[10px] uppercase font-bold text-orange-400">{t("user.assignedTeam")}</span>
+                  <span className="text-xs uppercase font-black text-orange-400 tracking-wider">{t("user.assignedTeam")}</span>
                   {activeTicket.assignedRescueTeamName ? (
                     <div>
-                      <div className="font-black text-white text-sm">{activeTicket.assignedRescueTeamName}</div>
-                      <div className="text-[10px] text-white/50 mt-1">Assigned On: {activeTicket.acceptedAt ? new Date(activeTicket.acceptedAt).toLocaleString() : "Pending"}</div>
+                      <div className="font-black text-white text-base">{activeTicket.assignedRescueTeamName}</div>
+                      <div className="text-xs text-white/70 mt-1.5">Assigned On: {activeTicket.acceptedAt ? new Date(activeTicket.acceptedAt).toLocaleString() : "Pending"}</div>
                     </div>
                   ) : (
-                    <div className="font-semibold italic text-white/40">{t("user.notAssigned")}</div>
+                    <div className="font-bold italic text-white/70 text-sm">{t("user.notAssigned")}</div>
                   )}
                 </div>
 
                 {/* Dynamic Timeline audit logs */}
                 <div className="space-y-3 text-xs">
-                  <span className="text-[10px] uppercase font-bold text-white/40 block">Audit timeline logs</span>
+                  <span className="text-xs uppercase font-black text-orange-400 block tracking-wider">Audit timeline logs</span>
                   {isLoadingHistory ? (
-                    <div className="text-center py-4 text-white/40 text-[10px]">Loading audit trail...</div>
+                    <div className="text-center py-4 text-white/60 text-xs">Loading audit trail...</div>
                   ) : (
                     <div className="relative border-l border-white/10 pl-4 ml-2 space-y-4 max-h-40 overflow-y-auto">
                       {ticketHistory.map((h) => (
                         <div key={h.id} className="relative">
                           <div className="absolute -left-[21px] top-1 w-2 h-2 rounded-full bg-orange-500 border border-slate-900" />
-                          <div className="font-black text-white/90 text-[11px]">{getStatusTranslation(h.status)}</div>
-                          <p className="text-white/60 text-[10px] leading-relaxed mt-0.5">{h.remarks}</p>
-                          <span className="text-[9px] text-white/40 block mt-0.5">
+                          <div className="font-black text-white text-sm tracking-wide">{getStatusTranslation(h.status)}</div>
+                          <p className="text-white/90 text-[12px] leading-relaxed mt-1 font-medium">{h.remarks}</p>
+                          <span className="text-[11px] text-white/60 block mt-1 font-semibold">
                             {new Date(h.createdAt).toLocaleString()} | By: {h.updatedBy}
                           </span>
                         </div>

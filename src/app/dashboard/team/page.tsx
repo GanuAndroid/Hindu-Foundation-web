@@ -835,14 +835,14 @@ export default function RescueTeamDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
               {/* Timeline audits timeline */}
               <div className="space-y-3 text-xs">
-                <span className="text-[10px] uppercase font-bold text-white/40 block">Audit timeline logs</span>
+                <span className="text-xs uppercase font-black text-orange-400 block tracking-wider">Audit timeline logs</span>
                 <div className="relative border-l border-white/10 pl-4 ml-2 space-y-4 max-h-40 overflow-y-auto">
                   {activeHistory.map((hist) => (
                     <div key={hist.id} className="relative">
                       <div className="absolute -left-[21px] top-1 w-2 h-2 rounded-full bg-orange-500 border border-slate-900" />
-                      <div className="font-black text-white/90 text-[11px]">{getStatusTranslation(hist.status)}</div>
-                      <p className="text-white/60 text-[10px] leading-relaxed mt-0.5">{hist.remarks}</p>
-                      <span className="text-[9px] text-white/40 block mt-0.5">
+                      <div className="font-black text-white text-sm tracking-wide">{getStatusTranslation(hist.status)}</div>
+                      <p className="text-white/90 text-[12px] leading-relaxed mt-1 font-medium">{hist.remarks}</p>
+                      <span className="text-[11px] text-white/60 block mt-1 font-semibold">
                         {new Date(hist.createdAt).toLocaleString()} | By: {hist.updatedBy}
                       </span>
                     </div>
@@ -852,7 +852,7 @@ export default function RescueTeamDashboard() {
 
               {/* Action buttons list */}
               <div className="space-y-4">
-                <span className="text-[10px] uppercase font-bold text-white/40 block">Dispatch operations</span>
+                <span className="text-xs uppercase font-black text-orange-400 block tracking-wider">Dispatch operations</span>
                 <div className="flex flex-col gap-2">
                   {activeTicket.status === "Pending" && (
                     <button
