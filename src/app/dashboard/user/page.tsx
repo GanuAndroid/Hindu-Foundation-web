@@ -861,15 +861,15 @@ export default function UserDashboard() {
                 <div className="space-y-3 text-xs">
                   <span className="text-xs uppercase font-black text-orange-400 block tracking-wider">Audit timeline logs</span>
                   {isLoadingHistory ? (
-                    <div className="text-center py-4 text-white/60 text-xs">Loading audit trail...</div>
+                    <div className="text-center py-4 text-white/60 text-sm">Loading audit trail...</div>
                   ) : (
-                    <div className="relative border-l border-white/10 pl-4 ml-2 space-y-4 max-h-40 overflow-y-auto">
+                    <div className="relative border-l border-white/10 pl-4 ml-2 space-y-4 max-h-[500px] overflow-y-auto pr-2">
                       {ticketHistory.map((h) => (
                         <div key={h.id} className="relative">
-                          <div className="absolute -left-[21px] top-1 w-2 h-2 rounded-full bg-orange-500 border border-slate-900" />
-                          <div className="font-black text-white text-sm tracking-wide">{getStatusTranslation(h.status)}</div>
-                          <p className="text-white/90 text-[12px] leading-relaxed mt-1 font-medium">{h.remarks}</p>
-                          <span className="text-[11px] text-white/60 block mt-1 font-semibold">
+                          <div className="absolute -left-[21px] top-1.5 w-2 h-2 rounded-full bg-orange-500 border border-slate-900" />
+                          <div className="font-black text-white text-base tracking-wide">{getStatusTranslation(h.status)}</div>
+                          <p className="text-white text-sm leading-relaxed mt-1 font-medium">{h.remarks}</p>
+                          <span className="text-xs text-white/70 block mt-1 font-semibold">
                             {new Date(h.createdAt).toLocaleString()} | By: {h.updatedBy}
                           </span>
                         </div>

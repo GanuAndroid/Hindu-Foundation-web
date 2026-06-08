@@ -836,13 +836,13 @@ export default function RescueTeamDashboard() {
               {/* Timeline audits timeline */}
               <div className="space-y-3 text-xs">
                 <span className="text-xs uppercase font-black text-orange-400 block tracking-wider">Audit timeline logs</span>
-                <div className="relative border-l border-white/10 pl-4 ml-2 space-y-4 max-h-40 overflow-y-auto">
+                <div className="relative border-l border-white/10 pl-4 ml-2 space-y-4 max-h-[500px] overflow-y-auto pr-2">
                   {activeHistory.map((hist) => (
                     <div key={hist.id} className="relative">
-                      <div className="absolute -left-[21px] top-1 w-2 h-2 rounded-full bg-orange-500 border border-slate-900" />
-                      <div className="font-black text-white text-sm tracking-wide">{getStatusTranslation(hist.status)}</div>
-                      <p className="text-white/90 text-[12px] leading-relaxed mt-1 font-medium">{hist.remarks}</p>
-                      <span className="text-[11px] text-white/60 block mt-1 font-semibold">
+                      <div className="absolute -left-[21px] top-1.5 w-2 h-2 rounded-full bg-orange-500 border border-slate-900" />
+                      <div className="font-black text-white text-base tracking-wide">{getStatusTranslation(hist.status)}</div>
+                      <p className="text-white text-sm leading-relaxed mt-1 font-medium">{hist.remarks}</p>
+                      <span className="text-xs text-white/70 block mt-1 font-semibold">
                         {new Date(hist.createdAt).toLocaleString()} | By: {hist.updatedBy}
                       </span>
                     </div>
